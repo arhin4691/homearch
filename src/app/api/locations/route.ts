@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/mongodb";
 import { Location } from "@/models/Location";
+import { Item } from "@/models/Item";
 import { User } from "@/models/User";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { z } from "zod";
@@ -12,6 +13,7 @@ const schema = z.object({
   description: z.string().max(200).optional(),
   imageUrl: z.string().url().optional(),
   imageFileId: z.string().optional(),
+  hashTags: z.array(z.string().max(30)).max(20).default([]),
 });
 
 export async function GET() {
@@ -27,12 +29,22 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
+    const locationIds = locations.map((l) => l._id);
+    const counts = await Item.aggregate([
+      { $match: { locationId: { $in: locationIds }, familyId: user.familyId } },
+      { $group: { _id: "$locationId", count: { $sum: 1 } } },
+    ]);
+    const countMap: Record<string, number> = {};
+    for (const c of counts) countMap[c._id.toString()] = c.count;
+
     return apiSuccess(
       locations.map((l) => ({
         id: (l._id as { toString(): string }).toString(),
         name: l.name,
         description: l.description,
         imageUrl: l.imageUrl,
+        hashTags: (l as any).hashTags ?? [],
+        itemCount: countMap[(l._id as { toString(): string }).toString()] ?? 0,
         familyId: l.familyId.toString(),
         createdAt: l.createdAt,
       }))

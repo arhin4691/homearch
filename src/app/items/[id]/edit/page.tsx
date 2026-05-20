@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { AppShell } from "@/components/layout/AppShell";
@@ -45,9 +45,10 @@ export default function EditItemPage() {
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
-  const [showNewLocation, setShowNewLocation] = useState(false);
-  const [newLocationName, setNewLocationName] = useState("");
   const [creatingLocation, setCreatingLocation] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const locationComboRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -82,6 +83,7 @@ export default function EditItemPage() {
           hashTags: item.hashTags,
           imageUrl: item.imageUrl,
         });
+        if (item.location?.name) setLocationSearch(item.location.name);
       });
   }, [id, reset]);
 
@@ -94,28 +96,42 @@ export default function EditItemPage() {
     }
   };
 
-  const createLocation = async () => {
-    if (!newLocationName.trim()) return;
+  const createLocationFromSearch = async () => {
+    if (!locationSearch.trim() || creatingLocation) return;
     setCreatingLocation(true);
     try {
       const res = await fetch("/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newLocationName.trim() }),
+        body: JSON.stringify({ name: locationSearch.trim() }),
       });
       if (!res.ok) throw new Error("Failed to create location");
       const json = await res.json();
       const newLoc = { id: json.data.id, name: json.data.name };
       setLocations((prev) => [newLoc, ...prev]);
       setValue("locationId", newLoc.id);
-      setNewLocationName("");
-      setShowNewLocation(false);
-    } catch {
-      // silently ignore
+      setLocationSearch(newLoc.name);
+      setShowLocationDropdown(false);
+    } catch (e: any) {
+      showToast(e.message ?? "Failed to create location", "error");
     } finally {
       setCreatingLocation(false);
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (locationComboRef.current && !locationComboRef.current.contains(e.target as Node)) {
+        setShowLocationDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredLocations = locations.filter((loc) =>
+    loc.name.toLowerCase().includes(locationSearch.toLowerCase())
+  );
 
   const onSubmit = async (data: FormData) => {
     setSaving(true);
@@ -201,52 +217,72 @@ export default function EditItemPage() {
           ))}
         </Select>
 
-        {/* Location with inline creation */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-[var(--foreground)]">{t("location")}</label>
-            <button
-              type="button"
-              onClick={() => setShowNewLocation((v) => !v)}
-              className="flex items-center gap-1 text-xs text-[#7dc0ff] font-medium hover:underline"
-            >
-              <Plus className="h-3 w-3" />
-              New location
-            </button>
-          </div>
-          <Select {...register("locationId")}>
-            <option value="">{t("noLocation")}</option>
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>{loc.name}</option>
-            ))}
-          </Select>
-          <AnimatePresence>
-            {showNewLocation && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex gap-2 overflow-hidden"
-              >
-                <input
-                  type="text"
-                  value={newLocationName}
-                  onChange={(e) => setNewLocationName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createLocation(); } }}
-                  placeholder="Location name…"
-                  className="flex-1 bg-[var(--card)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={createLocation}
-                  disabled={creatingLocation || !newLocationName.trim()}
-                  className="px-4 py-2 bg-[#7dc0ff] text-white rounded-xl text-sm font-medium hover:bg-[#5aabff] disabled:opacity-50 transition-colors"
+        {/* Location searchable combobox */}
+        <div className="flex flex-col gap-1.5" ref={locationComboRef}>
+          <label className="text-sm font-medium text-[var(--foreground)]">{t("location")}</label>
+          <div className="relative">
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)] pointer-events-none" />
+              <input
+                type="text"
+                value={locationSearch}
+                onChange={(e) => {
+                  setLocationSearch(e.target.value);
+                  setValue("locationId", "");
+                  setShowLocationDropdown(true);
+                }}
+                onFocus={() => setShowLocationDropdown(true)}
+                placeholder={t("noLocation")}
+                className="w-full pl-9 pr-3 py-2.5 bg-[var(--card)] border border-[var(--card-border)] rounded-xl text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
+              />
+            </div>
+            <AnimatePresence>
+              {showLocationDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute z-20 top-full mt-1 w-full bg-[var(--card)] border border-[var(--card-border)] rounded-xl shadow-xl overflow-hidden"
+                  style={{ maxHeight: 220, overflowY: "auto" }}
                 >
-                  {creatingLocation ? "…" : "Add"}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {filteredLocations.length === 0 && !locationSearch.trim() && (
+                    <p className="text-xs text-[var(--muted)] px-4 py-3">No locations yet</p>
+                  )}
+                  {filteredLocations.length === 0 && locationSearch.trim() && (
+                    <p className="text-xs text-[var(--muted)] px-4 py-2">No match found</p>
+                  )}
+                  {filteredLocations.map((loc) => (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setValue("locationId", loc.id);
+                        setLocationSearch(loc.name);
+                        setShowLocationDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors text-left"
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-[var(--muted)] flex-shrink-0" />
+                      {loc.name}
+                    </button>
+                  ))}
+                  {locationSearch.trim() && !filteredLocations.some((l) => l.name.toLowerCase() === locationSearch.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => createLocationFromSearch()}
+                      disabled={creatingLocation}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#7dc0ff] hover:bg-[#7dc0ff]/5 transition-colors border-t border-[var(--card-border)] disabled:opacity-50"
+                    >
+                      <Plus className="h-3.5 w-3.5 flex-shrink-0" />
+                      {creatingLocation ? "Creating…" : `Create "${locationSearch.trim()}"`}
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <div className="flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--card-border)] rounded-xl">

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
@@ -20,6 +20,7 @@ interface Location {
   description?: string;
   imageUrl?: string;
   itemCount?: number;
+  hashTags?: string[];
 }
 
 export default function LocationsPage() {
@@ -38,8 +39,11 @@ export default function LocationsPage() {
     description: "",
     imageUrl: "",
     imageFileId: "",
+    hashTags: [] as string[],
   });
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -66,7 +70,9 @@ export default function LocationsPage() {
       description: loc.description ?? "",
       imageUrl: loc.imageUrl ?? "",
       imageFileId: "",
+      hashTags: loc.hashTags ?? [],
     });
+    setTagInput("");
     setEditTarget(loc);
   };
 
@@ -78,7 +84,7 @@ export default function LocationsPage() {
       const url = editTarget
         ? `/api/locations/${editTarget.id}`
         : "/api/locations";
-      const payload: any = { name: form.name, description: form.description };
+      const payload: any = { name: form.name, description: form.description, hashTags: form.hashTags };
       if (form.imageUrl) payload.imageUrl = form.imageUrl;
       if (form.imageFileId) payload.imageFileId = form.imageFileId;
 
@@ -94,6 +100,7 @@ export default function LocationsPage() {
       );
       setShowCreate(false);
       setEditTarget(null);
+      setTagInput("");
       fetchLocations();
     } catch {
       showToast("Failed to save location", "error");
@@ -121,26 +128,18 @@ export default function LocationsPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[var(--foreground)]">
-          {t("title")}
-        </h1>
-        {user?.familyId && (
-          <button
-            onClick={() => {
-              setForm({
-                name: "",
-                description: "",
-                imageUrl: "",
-                imageFileId: "",
-              });
-              setShowCreate(true);
-            }}
-            className="p-2.5 rounded-xl bg-[#7dc0ff] text-white shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        )}
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-[var(--foreground)] mb-3">{t("title")}</h1>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)]" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search locations…"
+            className="w-full pl-9 pr-4 py-2.5 bg-[var(--card)] border border-[var(--card-border)] rounded-xl text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
+          />
+        </div>
       </div>
 
       {fetching ? (
@@ -163,7 +162,11 @@ export default function LocationsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {locations.map((loc) => (
+          {locations.filter((loc) =>
+            loc.name.toLowerCase().includes(search.toLowerCase()) ||
+            (loc.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
+            (loc.hashTags ?? []).some((t) => t.toLowerCase().includes(search.toLowerCase()))
+          ).map((loc) => (
             <motion.div
               key={loc.id}
               whileTap={{ scale: 0.96 }}
@@ -204,10 +207,32 @@ export default function LocationsPage() {
                 {loc.description && (
                   <p className="text-xs text-[var(--muted)] truncate mt-0.5">{loc.description}</p>
                 )}
+                {loc.hashTags && loc.hashTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {loc.hashTags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="text-[10px] text-[#7dc0ff] bg-[#7dc0ff]/10 px-1.5 py-0.5 rounded-full">#{tag}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
+      )}
+
+      {/* FAB */}
+      {user?.familyId && (
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            setForm({ name: "", description: "", imageUrl: "", imageFileId: "", hashTags: [] });
+            setTagInput("");
+            setShowCreate(true);
+          }}
+          className="fixed bottom-24 right-4 z-30 w-14 h-14 rounded-2xl bg-[#7dc0ff] text-white shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center hover:bg-[#5aabff] transition-colors lg:bottom-8 lg:right-8"
+        >
+          <Plus className="h-6 w-6" />
+        </motion.button>
       )}
 
       {/* Create/Edit Modal */}
@@ -216,6 +241,7 @@ export default function LocationsPage() {
         onClose={() => {
           setShowCreate(false);
           setEditTarget(null);
+          setTagInput("");
         }}
         title={editTarget ? t("editLocation") : t("addLocation")}
         footer={
@@ -225,6 +251,7 @@ export default function LocationsPage() {
               onClick={() => {
                 setShowCreate(false);
                 setEditTarget(null);
+                setTagInput("");
               }}
               fullWidth
             >
@@ -261,6 +288,59 @@ export default function LocationsPage() {
             }
             placeholder="Optional description"
           />
+          {/* Hashtags */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[var(--foreground)]">Tags</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (!tagInput.trim()) return;
+                    const tag = tagInput.trim().toLowerCase().replace(/^#/, "");
+                    if (!form.hashTags.includes(tag)) {
+                      setForm((p) => ({ ...p, hashTags: [...p.hashTags, tag] }));
+                    }
+                    setTagInput("");
+                  }
+                }}
+                placeholder="Add tag…"
+                className="flex-1 bg-[var(--card)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!tagInput.trim()) return;
+                  const tag = tagInput.trim().toLowerCase().replace(/^#/, "");
+                  if (!form.hashTags.includes(tag)) {
+                    setForm((p) => ({ ...p, hashTags: [...p.hashTags, tag] }));
+                  }
+                  setTagInput("");
+                }}
+                disabled={!tagInput.trim()}
+                className="px-3 py-2.5 bg-[#7dc0ff] text-white rounded-xl text-sm font-medium hover:bg-[#5aabff] disabled:opacity-40 transition-colors flex-shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            {form.hashTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {form.hashTags.map((tag) => (
+                  <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-[#7dc0ff]/10 text-[#7dc0ff] rounded-full text-xs font-medium">
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, hashTags: p.hashTags.filter((t) => t !== tag) }))}
+                      className="ml-0.5 hover:text-red-500"
+                    >×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 

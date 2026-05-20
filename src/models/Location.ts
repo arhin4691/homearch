@@ -7,6 +7,7 @@ export interface ILocation extends Document {
   imageUrl?: string;
   imageFileId?: string;
   description?: string;
+  hashTags?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,6 +19,7 @@ const LocationSchema = new Schema<ILocation>(
     imageUrl: { type: String },
     imageFileId: { type: String },
     description: { type: String, trim: true },
+    hashTags: [{ type: String }],
   },
   { timestamps: true }
 );

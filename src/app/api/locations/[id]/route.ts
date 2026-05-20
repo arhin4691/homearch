@@ -14,6 +14,7 @@ const schema = z.object({
   description: z.string().max(200).optional(),
   imageUrl: z.string().url().optional(),
   imageFileId: z.string().optional(),
+  hashTags: z.array(z.string().max(30)).max(20).optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

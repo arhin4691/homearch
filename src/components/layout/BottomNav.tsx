@@ -35,14 +35,12 @@ export function BottomNav() {
                 <motion.div
                   whileTap={{ scale: 0.92 }}
                   className={clsx(
-                    "w-14 h-14 rounded-2xl shadow-lg shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
+                    "relative w-14 h-14 rounded-2xl shadow-lg shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
                     "transition-all duration-200",
-                    isActive
-                      ? "bg-[#5aabff] scale-105"
-                      : "bg-[#7dc0ff] hover:bg-[#5aabff]"
+                    isActive ? "scale-105" : ""
                   )}
                 >
-                  <Image src="/icons/icon.png" alt="HomeArch" width={32} height={32} className="rounded-xl" />
+                  <Image src="/icons/icon.png" alt="HomeArch" fill className="object-cover" />
                 </motion.div>
               </Link>
             );
