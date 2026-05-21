@@ -10,6 +10,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ItemCard } from "@/components/ItemCard";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import Image from "next/image";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 interface DashboardData {
   stats: {
@@ -75,6 +77,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <Image src="/logo.png" alt="Homearch" className="h-12 w-12 mb-4" fill/>
         <div className="w-8 h-8 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -87,20 +90,21 @@ export default function DashboardPage() {
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-xs text-[var(--muted)] uppercase tracking-widest font-medium">Dashboard</p>
-          <h1 className="text-xl font-bold text-[var(--foreground)]">
-            Hi, {user.name.split(" ")[0]} 👋
+          <p className="text-s text-[var(--muted)] uppercase tracking-widest font-medium">{t("title")}</p>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {t("hello")}, {user.name.split(" ")[0]} 👋
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <button
             onClick={fetchDashboard}
             className="p-2.5 rounded-xl bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-            title="Refresh"
+            title={t("refresh")}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
-          <button
+          {/* <button
             onClick={() => router.push("/notifications")}
             className="relative p-2.5 rounded-xl bg-[var(--card)] border border-[var(--card-border)]"
           >
@@ -110,14 +114,14 @@ export default function DashboardPage() {
                 {data.stats.unreadCount > 9 ? "9+" : data.stats.unreadCount}
               </span>
             ) : null}
-          </button>
+          </button> */}
         </div>
       </div>
 
       {/* ── Search ─────────────────────────────────────── */}
       <form onSubmit={handleSearch} className="mb-6">
         <Input
-          placeholder="Search items, categories, #tags..."
+          placeholder={t("searchPlaceholder")}
           leftIcon={<Search className="h-4 w-4" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -127,10 +131,10 @@ export default function DashboardPage() {
       {/* ── Quick actions ──────────────────────────────── */}
       {user.familyId && (
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
-          <QuickAction icon={<Plus className="h-4 w-4" />} label="Add Item" onClick={() => router.push("/items/new")} primary />
-          <QuickAction icon={<MapPin className="h-4 w-4" />} label="Add Location" onClick={() => router.push("/locations")} />
-          <QuickAction icon={<ScanLine className="h-4 w-4" />} label="Scan" onClick={() => router.push("/items/new")} />
-          <QuickAction icon={<Star className="h-4 w-4" />} label="Favorites" onClick={() => router.push("/favorites")} />
+          <QuickAction icon={<Plus className="h-4 w-4" />} label={t("addItem")} onClick={() => router.push("/items/new")} primary />
+          <QuickAction icon={<MapPin className="h-4 w-4" />} label={t("addLocation")} onClick={() => router.push("/locations")} />
+          <QuickAction icon={<ScanLine className="h-4 w-4" />} label={t("scan")} onClick={() => router.push("/items/new")} />
+          <QuickAction icon={<Star className="h-4 w-4" />} label={t("favorites")} onClick={() => router.push("/favorites")} />
         </div>
       )}
 
@@ -141,9 +145,9 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-[#7dc0ff]/10 border border-[#7dc0ff]/30 rounded-2xl p-5 mb-6"
         >
-          <p className="font-semibold text-[var(--foreground)] mb-1">Set up your family</p>
-          <p className="text-sm text-[var(--muted)] mb-3">Create or join a family to start tracking items.</p>
-          <Button onClick={() => router.push("/settings")} size="sm" variant="outline">Go to Settings</Button>
+          <p className="font-semibold text-[var(--foreground)] mb-1">{t("setUpFamily")}</p>
+          <p className="text-sm text-[var(--muted)] mb-3">{t("createOrJoinFamily")}</p>
+          <Button onClick={() => router.push("/settings")} size="sm" variant="outline">{t("goToSettings")}</Button>
         </motion.div>
       )}
 
@@ -170,7 +174,7 @@ export default function DashboardPage() {
               />
               <StatCard
                 icon={<AlertTriangle className="h-5 w-5 text-red-500" />}
-                label="Expired"
+                label={t("expired")}
                 value={data.stats.expiredItems}
                 color="bg-red-500/10"
                 alert={data.stats.expiredItems > 0}
@@ -178,7 +182,7 @@ export default function DashboardPage() {
               />
               <StatCard
                 icon={<TrendingUp className="h-5 w-5 text-orange-500" />}
-                label="Expiring soon"
+                label={t("expiringSoon")}
                 value={data.stats.expiringItems}
                 color="bg-orange-500/10"
                 alert={data.stats.expiringItems > 0}
@@ -225,7 +229,7 @@ export default function DashboardPage() {
       {user.familyId && (
         <button
           onClick={() => router.push("/items/new")}
-          className="lg:hidden fixed bottom-24 right-4 w-14 h-14 bg-[#7dc0ff] hover:bg-[#5aabff] text-white rounded-2xl shadow-lg shadow-[#7dc0ff]/40 flex items-center justify-center transition-all active:scale-95 z-30"
+          className="lg:hidden fixed bottom-28 right-10 w-16 h-16 bg-[#7dc0ff] hover:bg-[#5aabff] text-white rounded-4xl shadow-lg shadow-[#7dc0ff]/40 flex items-center justify-center transition-all active:scale-95 z-30"
         >
           <Plus className="h-6 w-6" />
         </button>

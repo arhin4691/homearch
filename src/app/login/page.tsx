@@ -7,15 +7,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, Home, Fingerprint, X } from "lucide-react";
+import { Mail, AtSign, Lock, Home, Fingerprint, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
+import Image from "next/image";
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
+  emailOrUsername: z.string().min(1, "Email or username required"),
   password: z.string().min(1, "Password required"),
   rememberMe: z.boolean().optional(),
 });
@@ -38,7 +39,10 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { rememberMe: true } });
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { rememberMe: true },
+  });
 
   useEffect(() => {
     if (
@@ -47,7 +51,7 @@ export default function LoginPage() {
       PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
     ) {
       PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(
-        setBiometricAvailable
+        setBiometricAvailable,
       );
     }
     setBiometricEnrolled(localStorage.getItem("biometric_enrolled") === "true");
@@ -56,7 +60,7 @@ export default function LoginPage() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      await login(data.email, data.password, data.rememberMe);
+      await login(data.emailOrUsername, data.password, data.rememberMe);
       if (biometricAvailable && !biometricEnrolled) {
         setShowBiometricEnroll(true);
       } else {
@@ -72,7 +76,9 @@ export default function LoginPage() {
   const loginWithBiometric = async () => {
     setBiometricLoading(true);
     try {
-      const beginRes = await fetch("/api/auth/passkey/login-begin", { method: "POST" });
+      const beginRes = await fetch("/api/auth/passkey/login-begin", {
+        method: "POST",
+      });
       if (!beginRes.ok) throw new Error("Failed to get challenge");
       const { data: options } = await beginRes.json();
 
@@ -105,7 +111,9 @@ export default function LoginPage() {
   const enrollBiometric = async () => {
     setEnrollLoading(true);
     try {
-      const beginRes = await fetch("/api/auth/passkey/register-begin", { method: "POST" });
+      const beginRes = await fetch("/api/auth/passkey/register-begin", {
+        method: "POST",
+      });
       if (!beginRes.ok) throw new Error("Failed to start registration");
       const { data: options } = await beginRes.json();
 
@@ -151,7 +159,10 @@ export default function LoginPage() {
               className="bg-[var(--card)] rounded-3xl p-6 w-full max-w-sm shadow-2xl relative"
             >
               <button
-                onClick={() => { setShowBiometricEnroll(false); router.replace("/"); }}
+                onClick={() => {
+                  setShowBiometricEnroll(false);
+                  router.replace("/");
+                }}
                 className="absolute top-4 right-4 p-1 text-[var(--muted)] hover:text-[var(--foreground)]"
               >
                 <X className="h-5 w-5" />
@@ -169,12 +180,19 @@ export default function LoginPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 w-full">
-                  <Button onClick={enrollBiometric} loading={enrollLoading} fullWidth>
+                  <Button
+                    onClick={enrollBiometric}
+                    loading={enrollLoading}
+                    fullWidth
+                  >
                     Enable Biometric Login
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => { setShowBiometricEnroll(false); router.replace("/"); }}
+                    onClick={() => {
+                      setShowBiometricEnroll(false);
+                      router.replace("/");
+                    }}
                     fullWidth
                   >
                     Not now
@@ -192,10 +210,18 @@ export default function LoginPage() {
         className="w-full max-w-sm"
       >
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[#7dc0ff] flex items-center justify-center shadow-lg shadow-[#7dc0ff]/30">
-            <Home className="h-7 w-7 text-white" />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg mb-2 relative">
+            <Image
+              src="/icons/icon.png"
+              alt="Homearch"
+              width={100}
+              height={100}
+              className="absolute"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">{t("loginTitle")}</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {t("loginTitle")}
+          </h1>
           <p className="text-sm text-[var(--muted)]">{t("loginSubtitle")}</p>
         </div>
 
@@ -218,13 +244,13 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <Input
-            label={t("email")}
-            type="email"
-            placeholder="hello@example.com"
-            leftIcon={<Mail className="h-4 w-4" />}
-            error={errors.email?.message}
+            label={t("emailOrUsername")}
+            type="text"
+            placeholder="email@example.com or username"
+            leftIcon={<AtSign className="h-4 w-4" />}
+            error={errors.emailOrUsername?.message}
             autoComplete="username"
-            {...register("email")}
+            {...register("emailOrUsername")}
           />
           <Input
             label={t("password")}
@@ -242,10 +268,18 @@ export default function LoginPage() {
               className="w-4 h-4 rounded accent-[#7dc0ff] cursor-pointer"
               {...register("rememberMe")}
             />
-            <span className="text-sm text-[var(--muted)]">Keep me signed in for 30 days</span>
+            <span className="text-sm text-[var(--muted)]">
+              Keep me signed in for 30 days
+            </span>
           </label>
 
-          <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">
+          <Button
+            type="submit"
+            loading={loading}
+            fullWidth
+            size="lg"
+            className="mt-1"
+          >
             {t("login")}
           </Button>
         </form>
@@ -264,7 +298,10 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-[var(--muted)] mt-6">
           {t("noAccount")}{" "}
-          <Link href="/register" className="text-[#7dc0ff] font-medium hover:underline">
+          <Link
+            href="/register"
+            className="text-[#7dc0ff] font-medium hover:underline"
+          >
             {t("register")}
           </Link>
         </p>

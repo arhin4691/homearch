@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Plus, Edit, Trash2, Package, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
+
+const PAGE_SIZE = 6;
 
 interface Location {
   id: string;
@@ -31,6 +33,9 @@ export default function LocationsPage() {
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [fetching, setFetching] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
@@ -44,25 +49,50 @@ export default function LocationsPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [tagInput, setTagInput] = useState("");
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  const fetchLocations = useCallback(async () => {
+  const fetchLocations = useCallback(async (pg: number, replace: boolean) => {
     if (!user) return;
-    setFetching(true);
+    if (pg === 1) setFetching(true); else setLoadingMore(true);
     try {
-      const res = await fetch("/api/locations");
-      if (res.ok) setLocations((await res.json()).data);
+      const params = new URLSearchParams({ page: String(pg), limit: String(PAGE_SIZE) });
+      const res = await fetch(`/api/locations?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        const incoming: Location[] = json.data.locations ?? [];
+        setLocations((prev) => replace ? incoming : [...prev, ...incoming]);
+        setHasMore(json.data.hasMore);
+        setPage(pg);
+      }
     } finally {
       setFetching(false);
+      setLoadingMore(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchLocations();
+    fetchLocations(1, true);
   }, [fetchLocations]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !fetching) {
+          fetchLocations(page + 1, false);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, fetching, page, fetchLocations]);
 
   const openEdit = (loc: Location) => {
     setForm({
@@ -95,15 +125,15 @@ export default function LocationsPage() {
       });
       if (!res.ok) throw new Error();
       showToast(
-        editTarget ? "Location updated" : "Location created",
+        editTarget ? t("updated") : t("created"),
         "success",
       );
       setShowCreate(false);
       setEditTarget(null);
       setTagInput("");
-      fetchLocations();
+      fetchLocations(1, true);
     } catch {
-      showToast("Failed to save location", "error");
+      showToast(t("saveFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -114,11 +144,11 @@ export default function LocationsPage() {
     setSaving(true);
     try {
       await fetch(`/api/locations/${deleteTarget.id}`, { method: "DELETE" });
-      showToast("Location deleted", "success");
+      showToast(t("deleted"), "success");
       setDeleteTarget(null);
-      fetchLocations();
+      fetchLocations(1, true);
     } catch {
-      showToast("Delete failed", "error");
+      showToast(t("deleteFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -129,14 +159,14 @@ export default function LocationsPage() {
   return (
     <AppShell>
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-[var(--foreground)] mb-3">{t("title")}</h1>
+        <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)] mb-3">{t("title")}</h1>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)]" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search locations…"
+            placeholder={t("searchPlaceholder")}
             className="w-full pl-9 pr-4 py-2.5 bg-[var(--card)] border border-[var(--card-border)] rounded-xl text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
           />
         </div>
@@ -161,12 +191,13 @@ export default function LocationsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {locations.filter((loc) =>
-            loc.name.toLowerCase().includes(search.toLowerCase()) ||
-            (loc.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
-            (loc.hashTags ?? []).some((t) => t.toLowerCase().includes(search.toLowerCase()))
-          ).map((loc) => (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {locations.filter((loc) =>
+              loc.name.toLowerCase().includes(search.toLowerCase()) ||
+              (loc.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
+              (loc.hashTags ?? []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
+            ).map((loc) => (
             <motion.div
               key={loc.id}
               whileTap={{ scale: 0.96 }}
@@ -197,7 +228,7 @@ export default function LocationsPage() {
                 {loc.itemCount !== undefined && loc.itemCount > 0 && (
                   <div className="absolute bottom-2 left-2">
                     <span className="text-xs bg-black/50 backdrop-blur-sm text-white px-2 py-0.5 rounded-full font-medium">
-                      {loc.itemCount} {loc.itemCount === 1 ? "item" : "items"}
+                      {t("itemCount", { count: loc.itemCount })}
                     </span>
                   </div>
                 )}
@@ -217,7 +248,17 @@ export default function LocationsPage() {
               </div>
             </motion.div>
           ))}
-        </div>
+          </div>
+
+          {/* Infinite scroll sentinel */}
+          <div ref={sentinelRef} className="h-4" />
+
+          {loadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="w-6 h-6 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </>
       )}
 
       {/* FAB */}
@@ -229,7 +270,7 @@ export default function LocationsPage() {
             setTagInput("");
             setShowCreate(true);
           }}
-          className="fixed bottom-24 right-4 z-30 w-14 h-14 rounded-2xl bg-[#7dc0ff] text-white shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center hover:bg-[#5aabff] transition-colors lg:bottom-8 lg:right-8"
+          className="fixed bottom-28 right-10 z-30 w-16 h-16 rounded-4xl bg-[#7dc0ff] text-white shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center hover:bg-[#5aabff] transition-colors lg:bottom-8 lg:right-8"
         >
           <Plus className="h-6 w-6" />
         </motion.button>
@@ -255,10 +296,10 @@ export default function LocationsPage() {
               }}
               fullWidth
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button onClick={save} loading={saving} fullWidth>
-              Save
+              {t("save")}
             </Button>
           </div>
         }
@@ -278,7 +319,7 @@ export default function LocationsPage() {
             label={t("name")}
             value={form.name}
             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder="e.g. Kitchen, Bedroom"
+            placeholder={t("locationNamePlaceholder")}
           />
           <Input
             label={t("description")}
@@ -286,11 +327,11 @@ export default function LocationsPage() {
             onChange={(e) =>
               setForm((p) => ({ ...p, description: e.target.value }))
             }
-            placeholder="Optional description"
+            placeholder={t("descriptionPlaceholder")}
           />
           {/* Hashtags */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[var(--foreground)]">Tags</label>
+            <label className="text-sm font-medium text-[var(--foreground)]">{t("tags")}</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -307,7 +348,7 @@ export default function LocationsPage() {
                     setTagInput("");
                   }
                 }}
-                placeholder="Add tag…"
+                placeholder={t("addTag")}
                 className="flex-1 bg-[var(--card)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
               />
               <button
@@ -348,7 +389,7 @@ export default function LocationsPage() {
       <Modal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        title="Delete Location"
+        title={t("deleteLocation")}
         footer={
           <div className="flex gap-3">
             <Button
@@ -356,7 +397,7 @@ export default function LocationsPage() {
               onClick={() => setDeleteTarget(null)}
               fullWidth
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               variant="danger"
@@ -364,7 +405,7 @@ export default function LocationsPage() {
               loading={saving}
               fullWidth
             >
-              Delete
+              {t("delete")}
             </Button>
           </div>
         }

@@ -91,7 +91,7 @@ export default function NewItemPage() {
   useEffect(() => {
     fetch("/api/locations")
       .then((r) => r.json())
-      .then((d) => setLocations(d.data ?? []))
+      .then((d) => setLocations(d.data?.locations ?? []))
       .catch(() => {});
   }, []);
 

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Home, Package, MapPin, Heart, Settings, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { clsx } from "clsx";
 
 const navItems = [
@@ -25,13 +26,16 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-[var(--card)] border-r border-[var(--card-border)] z-40 py-6 px-4">
-      {/* Logo */}
-      <Link href="/" className="flex items-center gap-3 px-2 mb-8 group">
-        <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-[#7dc0ff]/30 group-hover:shadow-[#7dc0ff]/50 transition-shadow">
-          <Image src="/icons/icon.png" alt="HomeArch" width={36} height={36} className="w-full h-full object-cover" />
-        </div>
-        <span className="text-lg font-bold text-[var(--foreground)]">HomeArch</span>
-      </Link>
+      {/* Logo + bell */}
+      <div className="flex items-center justify-between px-2 mb-8">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-[#7dc0ff]/30 group-hover:shadow-[#7dc0ff]/50 transition-shadow">
+            <Image src="/icons/icon.png" alt="Homearch" width={36} height={36} className="w-full h-full object-cover" />
+          </div>
+          <span className="text-lg font-bold text-[var(--foreground)]">Homearch</span>
+        </Link>
+        <NotificationBell />
+      </div>
 
       {/* Nav items */}
       <nav className="flex flex-col gap-1 flex-1">

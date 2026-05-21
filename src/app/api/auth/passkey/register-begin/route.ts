@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { isoUint8Array } from "@simplewebauthn/server/helpers";
 import { cookies } from "next/headers";
@@ -9,19 +9,11 @@ import { User } from "@/models/User";
 import { PasskeyCredential } from "@/models/PasskeyCredential";
 import { getSession } from "@/lib/session";
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getRpId } from "@/lib/webauthn";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-function getRpId() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "localhost";
-  }
-}
-
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return apiError("Unauthorized", 401);
@@ -31,10 +23,11 @@ export async function POST() {
     if (!user) return apiError("User not found", 404);
 
     const existingCredentials = await PasskeyCredential.find({ userId: user._id }).lean();
+    const rpId = getRpId(req.url);
 
     const options = await generateRegistrationOptions({
-      rpName: "HomeArch",
-      rpID: getRpId(),
+      rpName: "Homearch",
+      rpID: rpId,
       userID: isoUint8Array.fromUTF8String(user._id.toString()),
       userName: user.email,
       userDisplayName: user.name,

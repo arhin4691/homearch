@@ -8,7 +8,8 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 const schema = z.object({
-  email: z.string().email(),
+  // Accept either email or username in the same field
+  emailOrUsername: z.string().min(1),
   password: z.string().min(1),
   rememberMe: z.boolean().optional(),
 });
@@ -20,13 +21,18 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return apiError("Invalid credentials", 400);
 
     await connectDB();
-    const { email, password, rememberMe } = parsed.data;
+    const { emailOrUsername, password, rememberMe } = parsed.data;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return apiError("Invalid email or password", 401);
+    // Determine if input looks like an email
+    const isEmail = emailOrUsername.includes("@");
+    const user = isEmail
+      ? await User.findOne({ email: emailOrUsername.toLowerCase() })
+      : await User.findOne({ username: emailOrUsername.toLowerCase() });
+
+    if (!user) return apiError("Invalid credentials", 401);
 
     const valid = await comparePassword(password, user.passwordHash);
-    if (!valid) return apiError("Invalid email or password", 401);
+    if (!valid) return apiError("Invalid credentials", 401);
 
     const token = signToken({
       userId: user._id.toString(),

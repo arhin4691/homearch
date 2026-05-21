@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
     const category = url.searchParams.get("category");
     const locationId = url.searchParams.get("locationId");
     const favorite = url.searchParams.get("favorite");
+    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "6", 10)));
+    const paginate = url.searchParams.get("paginate") !== "false";
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const query: any = { familyId: user.familyId };
@@ -52,35 +55,40 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const items = await Item.find(query)
+    const baseQuery = Item.find(query)
       .populate("locationId", "name")
       .populate("uploaderId", "name avatarUrl")
-      .sort({ createdAt: -1 })
-      .lean();
+      .sort({ createdAt: -1 });
 
-    return apiSuccess(
-      items.map((item) => ({
-        id: (item._id as { toString(): string }).toString(),
-        name: item.name,
-        category: item.category,
-        quantity: (item as any).quantity ?? 1,
-        imageUrl: item.imageUrl,
-        hasExpiry: item.hasExpiry,
-        expiryDate: item.expiryDate,
-        bestBeforeDate: item.bestBeforeDate,
-        hashTags: item.hashTags,
-        isFavorite: (item.favoritedBy as { toString(): string }[]).some(
-          (id) => id.toString() === (user._id as { toString(): string }).toString()
-        ),
-        location: item.locationId
-          ? { id: (item.locationId as any)._id?.toString(), name: (item.locationId as any).name }
-          : null,
-        uploader: item.uploaderId
-          ? { name: (item.uploaderId as any).name, avatarUrl: (item.uploaderId as any).avatarUrl }
-          : null,
-        createdAt: item.createdAt,
-      }))
-    );
+    const items = paginate
+      ? await baseQuery.skip((page - 1) * limit).limit(limit).lean()
+      : await baseQuery.lean();
+
+    const total = paginate ? await Item.countDocuments(query) : items.length;
+
+    const mapped = items.map((item) => ({
+      id: (item._id as { toString(): string }).toString(),
+      name: item.name,
+      category: item.category,
+      quantity: (item as any).quantity ?? 1,
+      imageUrl: item.imageUrl,
+      hasExpiry: item.hasExpiry,
+      expiryDate: item.expiryDate,
+      bestBeforeDate: item.bestBeforeDate,
+      hashTags: item.hashTags,
+      isFavorite: (item.favoritedBy as { toString(): string }[]).some(
+        (id) => id.toString() === (user._id as { toString(): string }).toString()
+      ),
+      location: item.locationId
+        ? { id: (item.locationId as any)._id?.toString(), name: (item.locationId as any).name }
+        : null,
+      uploader: item.uploaderId
+        ? { name: (item.uploaderId as any).name, avatarUrl: (item.uploaderId as any).avatarUrl }
+        : null,
+      createdAt: item.createdAt,
+    }));
+
+    return apiSuccess({ items: mapped, total, page, limit, hasMore: paginate ? page * limit < total : false });
   } catch (e) {
     console.error(e);
     return apiError("Internal server error", 500);

@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, User, Home } from "lucide-react";
+import { Mail, AtSign, Lock, User, Home } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -17,6 +17,11 @@ import { useToast } from "@/components/ui/Toast";
 const schema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters"),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(30, "Username must be at most 30 characters")
+      .regex(/^[a-z0-9_]+$/i, "Letters, numbers and underscores only"),
     email: z.string().email("Invalid email"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
@@ -47,7 +52,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
+        body: JSON.stringify({ name: data.name, username: data.username, email: data.email, password: data.password }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -84,6 +89,14 @@ export default function RegisterPage() {
             leftIcon={<User className="h-4 w-4" />}
             error={errors.name?.message}
             {...register("name")}
+          />
+          <Input
+            label={t("username")}
+            placeholder="john_doe"
+            leftIcon={<AtSign className="h-4 w-4" />}
+            error={errors.username?.message}
+            autoComplete="username"
+            {...register("username")}
           />
           <Input
             label={t("email")}

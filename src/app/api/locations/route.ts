@@ -16,7 +16,7 @@ const schema = z.object({
   hashTags: z.array(z.string().max(30)).max(20).default([]),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return apiError("Unauthorized", 401);
@@ -25,9 +25,17 @@ export async function GET() {
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);
 
-    const locations = await Location.find({ familyId: user.familyId })
-      .sort({ createdAt: -1 })
-      .lean();
+    const url = new URL(req.url);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "6", 10)));
+    const paginate = url.searchParams.get("paginate") !== "false";
+
+    const filter = { familyId: user.familyId };
+    const total = paginate ? await Location.countDocuments(filter) : 0;
+
+    const locations = paginate
+      ? await Location.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean()
+      : await Location.find(filter).sort({ createdAt: -1 }).lean();
 
     const locationIds = locations.map((l) => l._id);
     const counts = await Item.aggregate([
@@ -37,8 +45,8 @@ export async function GET() {
     const countMap: Record<string, number> = {};
     for (const c of counts) countMap[c._id.toString()] = c.count;
 
-    return apiSuccess(
-      locations.map((l) => ({
+    return apiSuccess({
+      locations: locations.map((l) => ({
         id: (l._id as { toString(): string }).toString(),
         name: l.name,
         description: l.description,
@@ -47,8 +55,12 @@ export async function GET() {
         itemCount: countMap[(l._id as { toString(): string }).toString()] ?? 0,
         familyId: l.familyId.toString(),
         createdAt: l.createdAt,
-      }))
-    );
+      })),
+      total: paginate ? total : locations.length,
+      page,
+      limit,
+      hasMore: paginate ? page * limit < total : false,
+    });
   } catch (e) {
     console.error(e);
     return apiError("Internal server error", 500);

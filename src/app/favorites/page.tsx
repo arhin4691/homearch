@@ -25,7 +25,7 @@ export default function FavoritesPage() {
     setFetching(true);
     try {
       const res = await fetch("/api/items?favorite=true");
-      if (res.ok) setItems((await res.json()).data);
+      if (res.ok) setItems((await res.json()).data.items ?? []);
     } finally {
       setFetching(false);
     }
@@ -42,7 +42,7 @@ export default function FavoritesPage() {
     <AppShell>
       <div className="flex items-center gap-3 mb-6">
         <Heart className="h-5 w-5 text-red-500 fill-red-500" />
-        <h1 className="text-xl font-bold text-[var(--foreground)]">{t("title")}</h1>
+        <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)]">{t("title")}</h1>
       </div>
 
       {fetching ? (
@@ -59,7 +59,7 @@ export default function FavoritesPage() {
           <p className="text-[var(--muted)] text-sm">{t("noFavorites")}</p>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (
             <ItemCard key={item.id} item={item} onFavoriteToggle={toggleFavorite} />
           ))}

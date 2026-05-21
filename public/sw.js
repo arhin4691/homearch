@@ -65,7 +65,7 @@ self.addEventListener("push", (event) => {
   if (!event.data) return;
   const data = event.data.json();
   event.waitUntil(
-    self.registration.showNotification(data.title || "HomeArch", {
+    self.registration.showNotification(data.title || "Homearch", {
       body: data.body || "",
       icon: "/icons/icon-192x192.svg",
       badge: "/icons/icon-192x192.svg",

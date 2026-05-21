@@ -1,24 +1,18 @@
 // @ts-nocheck
+import { NextRequest } from "next/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getRpId } from "@/lib/webauthn";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-function getRpId() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+export async function POST(req: NextRequest) {
   try {
-    return new URL(url).hostname;
-  } catch {
-    return "localhost";
-  }
-}
-
-export async function POST() {
-  try {
+    const rpId = getRpId(req.url);
     const options = await generateAuthenticationOptions({
-      rpID: getRpId(),
+      rpID: rpId,
       timeout: 60000,
       allowCredentials: [], // discoverable / resident key — no userId needed
       userVerification: "preferred",

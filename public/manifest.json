@@ -1,6 +1,6 @@
 {
-  "name": "HomeArch",
-  "short_name": "HomeArch",
+  "name": "Homearch",
+  "short_name": "Homearch",
   "description": "Family Inventory and Expiry Date Tracker",
   "start_url": "/",
   "display": "standalone",

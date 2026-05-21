@@ -5,6 +5,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HomeArch – Family Inventory Tracker",
+  title: "Homearch – Family Inventory Tracker",
   description: "Track your family's items, locations, and expiry dates.",
   manifest: "/manifest.json",
   icons: {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "HomeArch",
+    title: "Homearch",
   },
 };
 
@@ -63,13 +64,15 @@ export default async function RootLayout({
           }}
         />
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <ThemeProvider>
-            <AuthProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </AuthProvider>
-          </ThemeProvider>
+          <QueryProvider>
+            <ThemeProvider>
+              <AuthProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>

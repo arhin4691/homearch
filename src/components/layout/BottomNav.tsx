@@ -35,12 +35,12 @@ export function BottomNav() {
                 <motion.div
                   whileTap={{ scale: 0.92 }}
                   className={clsx(
-                    "relative w-14 h-14 rounded-2xl shadow-lg shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
+                    "relative w-20 h-20 rounded-2xl shadow-2xl shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
                     "transition-all duration-200",
-                    isActive ? "scale-105" : ""
+                    !isActive ? "scale-105" : ""
                   )}
                 >
-                  <Image src="/icons/icon.png" alt="HomeArch" fill className="object-cover" />
+                  <Image src="/icons/icon.png" alt="Homearch" fill className="object-cover" />
                 </motion.div>
               </Link>
             );

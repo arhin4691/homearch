@@ -51,18 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (email: string, password: string, rememberMe = true) => {
+  const login = useCallback(async (emailOrUsername: string, password: string, rememberMe = false) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, rememberMe }),
+      body: JSON.stringify({ emailOrUsername, password, rememberMe }),
     });
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error ?? "Login failed");
     }
     await refreshUser();
-  };
+  }, [refreshUser]);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });

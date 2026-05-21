@@ -11,6 +11,11 @@ import { z } from "zod";
 
 const schema = z.object({
   email: z.string().email(),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username must be at most 30 characters")
+    .regex(/^[a-z0-9_]+$/i, "Username can only contain letters, numbers, and underscores"),
   password: z.string().min(8),
   name: z.string().min(2).max(60),
 });
@@ -24,15 +29,19 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB();
-    const { email, password, name } = parsed.data;
+    const { email, username, password, name } = parsed.data;
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) return apiError("Email already registered", 409);
+    const [existingEmail, existingUsername] = await Promise.all([
+      User.findOne({ email: email.toLowerCase() }).lean(),
+      User.findOne({ username: username.toLowerCase() }).lean(),
+    ]);
+    if (existingEmail) return apiError("Email already registered", 409);
+    if (existingUsername) return apiError("Username already taken", 409);
 
     const passwordHash = await hashPassword(password);
     const userCode = generateUserCode();
 
-    const user = await User.create({ email, passwordHash, name, userCode });
+    const user = await User.create({ email, username: username.toLowerCase(), passwordHash, name, userCode });
 
     const token = signToken({
       userId: user._id.toString(),
@@ -53,6 +62,7 @@ export async function POST(req: NextRequest) {
       {
         id: user._id.toString(),
         email: user.email,
+        username: user.username,
         name: user.name,
         userCode: user.userCode,
         familyId: null,

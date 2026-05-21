@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { NextRequest } from "next/server";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
@@ -6,23 +7,11 @@ import { connectDB } from "@/lib/mongodb";
 import { PasskeyCredential } from "@/models/PasskeyCredential";
 import { getSession } from "@/lib/session";
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getRpId, getExpectedOrigins } from "@/lib/webauthn";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-function getRpId() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "localhost";
-  }
-}
-
-function getExpectedOrigin() {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-}
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return apiError("Unauthorized", 401);
@@ -44,12 +33,14 @@ export async function POST(req: Request) {
     if (state.userId !== session.userId) return apiError("User mismatch", 403);
 
     const body = await req.json();
+    const expectedOrigins = getExpectedOrigins(req.url);
+    const rpId = getRpId(req.url);
 
     const verification = await verifyRegistrationResponse({
       response: body,
       expectedChallenge: state.challenge,
-      expectedOrigin: getExpectedOrigin(),
-      expectedRPID: getRpId(),
+      expectedOrigin: expectedOrigins,
+      expectedRPID: rpId,
       requireUserVerification: false,
     });
 

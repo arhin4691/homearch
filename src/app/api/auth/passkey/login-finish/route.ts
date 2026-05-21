@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { NextRequest } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
@@ -7,23 +8,11 @@ import { User } from "@/models/User";
 import { PasskeyCredential } from "@/models/PasskeyCredential";
 import { signToken } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getRpId, getExpectedOrigins } from "@/lib/webauthn";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-function getRpId() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "localhost";
-  }
-}
-
-function getExpectedOrigin() {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-}
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const cookieStore = await cookies();
     const stateToken = cookieStore.get("webauthn_state")?.value;
@@ -40,6 +29,8 @@ export async function POST(req: Request) {
     cookieStore.set("webauthn_state", "", { maxAge: 0, path: "/" });
 
     const body = await req.json();
+    const expectedOrigins = getExpectedOrigins(req.url);
+    const rpId = getRpId(req.url);
 
     await connectDB();
 
@@ -52,8 +43,8 @@ export async function POST(req: Request) {
     const verification = await verifyAuthenticationResponse({
       response: body,
       expectedChallenge: state.challenge,
-      expectedOrigin: getExpectedOrigin(),
-      expectedRPID: getRpId(),
+      expectedOrigin: expectedOrigins,
+      expectedRPID: rpId,
       requireUserVerification: false,
       credential: {
         id: storedCredential.credentialId,

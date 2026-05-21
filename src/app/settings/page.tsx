@@ -1,13 +1,14 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
-import { User, Lock, Palette, Globe, Users, Key, Plus, Trash2, Copy, LogOut, QrCode, Fingerprint } from "lucide-react";
+import { User, Lock, Palette, Globe, Users, Key, Plus, Trash2, Copy, LogOut, QrCode, Fingerprint, UserPlus, Camera, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -15,7 +16,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
 
 // --- Profile form ---
@@ -37,12 +37,16 @@ export default function SettingsPage() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [avatarFileId, setAvatarFileId] = useState<string | undefined>(undefined);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
   const [family, setFamily] = useState<any | null>(null);
   const [apiKeys, setApiKeys] = useState<any[]>([]);
   const [showCreateKey, setShowCreateKey] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newApiKey, setNewApiKey] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [showMyQr, setShowMyQr] = useState(false);
   const [locale, setLocale] = useState("en");
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +64,6 @@ export default function SettingsPage() {
     if (!user) return;
     profileForm.reset({ name: user.name });
     setAvatarUrl(user.avatarUrl);
-    // Read locale from cookie
     const localeCookie = document.cookie.split(";").find((c) => c.trim().startsWith("locale="));
     if (localeCookie) setLocale(localeCookie.split("=")[1].trim());
 
@@ -82,10 +85,10 @@ export default function SettingsPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
-      showToast("Profile updated", "success");
+      showToast(t("profileUpdated"), "success");
       refreshUser();
     } catch {
-      showToast("Update failed", "error");
+      showToast(t("profileFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -100,10 +103,11 @@ export default function SettingsPage() {
         body: JSON.stringify({ currentPassword: data.currentPassword, newPassword: data.newPassword }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showToast("Password changed", "success");
+      showToast(t("passwordChanged"), "success");
       passwordForm.reset();
+      setShowPasswordModal(false);
     } catch (e: any) {
-      showToast(e.message ?? "Failed", "error");
+      showToast(e.message ?? t("passwordFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -135,40 +139,95 @@ export default function SettingsPage() {
     setApiKeys((prev) => prev.filter((k) => k.id !== id));
   };
 
+  const uploadAvatar = async (file: File) => {
+    setAvatarUploading(true);
+    try {
+      const authRes = await fetch("/api/imagekit/auth");
+      const auth = await authRes.json();
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("fileName", file.name);
+      formData.append("folder", "/homearch/avatars");
+      formData.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
+      formData.append("signature", auth.data.signature);
+      formData.append("expire", auth.data.expire.toString());
+      formData.append("token", auth.data.token);
+      const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const result = await uploadRes.json();
+      setAvatarUrl(result.url);
+      setAvatarFileId(result.fileId);
+    } catch {
+      showToast("Image upload failed", "error");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    showToast("Copied!", "success");
+    showToast(t("copied"), "success");
   };
 
   return (
     <AppShell>
-      <h1 className="text-xl font-bold text-[var(--foreground)] mb-6">{t("title")}</h1>
+      <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)] mb-6">{t("title")}</h1>
 
       <div className="flex flex-col gap-4">
         {/* Profile */}
         <Section icon={<User className="h-4 w-4 text-[#7dc0ff]" />} title={t("profile")}>
           <form onSubmit={profileForm.handleSubmit(saveProfile)} className="flex flex-col gap-4">
-            <ImageUpload
-              value={avatarUrl}
-              folder="/homearch/avatars"
-              onChange={(url, fid) => { setAvatarUrl(url); setAvatarFileId(fid); }}
-              onClear={() => { setAvatarUrl(undefined); setAvatarFileId(undefined); }}
-              label="Avatar"
-            />
+            {/* Circle Avatar — click to upload */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => avatarFileRef.current?.click()}
+                className="relative w-50 h-50 rounded-full overflow-hidden border-2 border-[#7dc0ff]/40 bg-[#7dc0ff]/10 flex items-center justify-center group cursor-pointer"
+              >
+                {avatarUrl ? (
+                  <Image src={avatarUrl} alt={user?.name ?? ""} fill className="object-cover"/>
+                ) : (
+                  <span className="text-3xl font-bold text-[#7dc0ff]">
+                    {user?.name?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                )}
+                {/* Hover/loading overlay */}
+                <div className={`absolute inset-0 bg-black/40 rounded-full flex items-center justify-center transition-opacity ${avatarUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                  {avatarUploading ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-white" />
+                  )}
+                </div>
+              </button>
+              <p className="text-xs text-[var(--muted)]">{t("changeAvatar")}</p>
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }}
+              />
+            </div>
             <Input label={t("name")} error={profileForm.formState.errors.name?.message} {...profileForm.register("name")} />
-            <Input label="Email" value={user?.email ?? ""} disabled />
-            <Input label="User Code" value={user?.userCode ?? ""} readOnly />
+            <Input label={t("email")} value={user?.email ?? ""} disabled />
+            <Input label={t("userCode")} value={user?.userCode ?? ""} readOnly />
             <Button type="submit" loading={saving} size="sm">{t("save")}</Button>
           </form>
-        </Section>
 
-        {/* Password */}
-        <Section icon={<Lock className="h-4 w-4 text-purple-500" />} title={t("changePassword")}>
-          <form onSubmit={passwordForm.handleSubmit(savePassword)} className="flex flex-col gap-4">
-            <Input label={t("currentPassword")} type="password" error={passwordForm.formState.errors.currentPassword?.message} {...passwordForm.register("currentPassword")} />
-            <Input label={t("newPassword")} type="password" error={passwordForm.formState.errors.newPassword?.message} {...passwordForm.register("newPassword")} />
-            <Button type="submit" loading={saving} size="sm">{t("save")}</Button>
-          </form>
+          {/* Change Password trigger */}
+          <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="flex items-center gap-2 text-sm text-[#7dc0ff] font-medium hover:underline"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              {t("changePasswordBtn")}
+            </button>
+          </div>
         </Section>
 
         {/* Theme */}
@@ -193,7 +252,7 @@ export default function SettingsPage() {
         {/* Language */}
         <Section icon={<Globe className="h-4 w-4 text-green-500" />} title={t("language")}>
           <div className="flex gap-2">
-            {[{ code: "en", label: "English" }, { code: "zh-HK", label: "繁體中文" }].map((lang) => (
+            {[{ code: "en", label: "English" }, { code: "zh-HK", label: "蝜?銝剜?" }].map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => changeLocale(lang.code)}
@@ -206,6 +265,36 @@ export default function SettingsPage() {
                 {lang.label}
               </button>
             ))}
+          </div>
+        </Section>
+
+        {/* Friends */}
+        <Section icon={<UserPlus className="h-4 w-4 text-pink-400" />} title={t("friends")}>
+          <div className="flex flex-col gap-3">
+            {user?.userCode && (
+              <div className="p-3 bg-[var(--background)] rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-[var(--muted)]">{t("userCode")}</p>
+                  <p className="font-mono font-semibold text-[var(--foreground)]">{user.userCode}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => copyToClipboard(user.userCode!)} className="p-2 rounded-lg hover:bg-[var(--card)]">
+                    <Copy className="h-4 w-4 text-[var(--muted)]" />
+                  </button>
+                  <button onClick={() => setShowMyQr(true)} className="p-2 rounded-lg hover:bg-[var(--card)]">
+                    <QrCode className="h-4 w-4 text-[var(--muted)]" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              fullWidth
+              onClick={() => router.push("/friends")}
+            >
+              {t("friendList")}
+            </Button>
           </div>
         </Section>
 
@@ -232,15 +321,19 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="p-3 bg-[var(--background)] rounded-xl">
-                <p className="text-xs text-[var(--muted)] mb-2">Members ({family.members?.length ?? 0})</p>
+                <p className="text-xs text-[var(--muted)] mb-2">{t("membersCount", { count: family.members?.length ?? 0 })}</p>
                 {(family.members ?? []).map((m: any) => (
                   <div key={m.id} className="flex items-center gap-2 py-1">
-                    <div className="w-7 h-7 rounded-full bg-[#7dc0ff]/20 flex items-center justify-center text-xs font-bold text-[#7dc0ff]">
-                      {m.name?.[0]?.toUpperCase()}
+                    <div className="w-7 h-7 rounded-full overflow-hidden bg-[#7dc0ff]/20 flex items-center justify-center text-xs font-bold text-[#7dc0ff] flex-shrink-0">
+                      {m.avatarUrl ? (
+                        <Image src={m.avatarUrl} alt={m.name} width={28} height={28} className="object-cover w-full h-full" />
+                      ) : (
+                        m.name?.[0]?.toUpperCase()
+                      )}
                     </div>
                     <span className="text-sm text-[var(--foreground)]">{m.name}</span>
                     {m.id === family.ownerId && (
-                      <span className="text-xs text-[#7dc0ff] ml-1">Owner</span>
+                      <span className="text-xs text-[#7dc0ff] ml-1">{t("owner")}</span>
                     )}
                   </div>
                 ))}
@@ -256,7 +349,7 @@ export default function SettingsPage() {
           )}
         </Section>
 
-        {/* API Keys — owner only */}
+        {/* API Keys ??owner only */}
         {family?.ownerId === user?.id && (
           <Section icon={<Key className="h-4 w-4 text-yellow-500" />} title={t("apiKeys")}>
             <div className="flex flex-col gap-3">
@@ -279,8 +372,10 @@ export default function SettingsPage() {
           </Section>
         )}
 
-        {/* Logout */}
+        {/* Biometric */}
         <BiometricSection />
+
+        {/* Logout */}
         <button
           onClick={async () => { await logout(); router.replace("/login"); }}
           className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/20 rounded-2xl text-red-500 font-medium"
@@ -290,8 +385,8 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* QR Modal */}
-      <Modal open={showQr} onClose={() => setShowQr(false)} title="Family QR Code">
+      {/* Family QR Modal */}
+      <Modal open={showQr} onClose={() => setShowQr(false)} title={t("familyQR")}>
         <div className="flex flex-col items-center gap-4 py-4">
           {family?.familyCode && (
             <div className="p-4 bg-white rounded-2xl">
@@ -301,7 +396,61 @@ export default function SettingsPage() {
               />
             </div>
           )}
-          <p className="text-sm text-[var(--muted)] text-center">Share this QR code to invite family members</p>
+          <p className="text-sm text-[var(--muted)] text-center">{t("familyQRSubtitle")}</p>
+        </div>
+      </Modal>
+
+      {/* My User QR Modal */}
+      <Modal open={showMyQr} onClose={() => setShowMyQr(false)} title={t("myQR")}>
+        <div className="flex flex-col items-center gap-4 py-4">
+          {user?.userCode && (
+            <div className="p-4 bg-white rounded-2xl">
+              <QRCodeSVG
+                value={`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invite/friend?code=${user.userCode}`}
+                size={200}
+              />
+            </div>
+          )}
+          <p className="text-sm font-mono text-[var(--foreground)]">{user?.userCode}</p>
+          <button
+            onClick={() => copyToClipboard(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invite/friend?code=${user?.userCode}`)}
+            className="flex items-center gap-2 text-sm text-[#7dc0ff] font-medium"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {t("inviteLink")}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal
+        open={showPasswordModal}
+        onClose={() => { setShowPasswordModal(false); passwordForm.reset(); }}
+        title={t("changePassword")}
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => { setShowPasswordModal(false); passwordForm.reset(); }} fullWidth>
+              {t("cancel")}
+            </Button>
+            <Button onClick={passwordForm.handleSubmit(savePassword)} loading={saving} fullWidth>
+              {t("save")}
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label={t("currentPassword")}
+            type="password"
+            error={passwordForm.formState.errors.currentPassword?.message}
+            {...passwordForm.register("currentPassword")}
+          />
+          <Input
+            label={t("newPassword")}
+            type="password"
+            error={passwordForm.formState.errors.newPassword?.message}
+            {...passwordForm.register("newPassword")}
+          />
         </div>
       </Modal>
 
@@ -309,21 +458,21 @@ export default function SettingsPage() {
       <Modal
         open={showCreateKey}
         onClose={() => { setShowCreateKey(false); setNewApiKey(""); setNewKeyName(""); }}
-        title="Create API Key"
+        title={t("newApiKey")}
         footer={
           newApiKey ? (
-            <Button onClick={() => { setShowCreateKey(false); setNewApiKey(""); }} fullWidth>Done</Button>
+            <Button onClick={() => { setShowCreateKey(false); setNewApiKey(""); }} fullWidth>{t("done")}</Button>
           ) : (
             <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => setShowCreateKey(false)} fullWidth>Cancel</Button>
-              <Button onClick={createApiKey} fullWidth>Create</Button>
+              <Button variant="secondary" onClick={() => setShowCreateKey(false)} fullWidth>{t("cancel")}</Button>
+              <Button onClick={createApiKey} fullWidth>{t("create")}</Button>
             </div>
           )
         }
       >
         {newApiKey ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-[var(--muted)]">Copy this key — it won't be shown again:</p>
+            <p className="text-sm text-[var(--muted)]">{t("apiKeyCopyNote")}</p>
             <div className="flex items-center gap-2 p-3 bg-[var(--background)] rounded-xl">
               <code className="text-xs font-mono text-[var(--foreground)] flex-1 break-all">{newApiKey}</code>
               <button onClick={() => copyToClipboard(newApiKey)}>
@@ -333,10 +482,10 @@ export default function SettingsPage() {
           </div>
         ) : (
           <Input
-            label="Key Name"
+            label={t("apiKeyName")}
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
-            placeholder="e.g. Home Assistant"
+            placeholder={t("apiKeyNamePlaceholder")}
           />
         )}
       </Modal>
@@ -357,22 +506,29 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
 }
 
 function BiometricSection() {
+  const t = useTranslations("settings");
+  const { showToast } = useToast();
   const [available, setAvailable] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Check platform authenticator availability
     if (
       typeof window !== "undefined" &&
       window.PublicKeyCredential &&
       PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
     ) {
-      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(setAvailable);
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then(setAvailable)
+        .catch(() => setAvailable(false));
     }
     setEnrolled(localStorage.getItem("biometric_enrolled") === "true");
   }, []);
 
-  if (!available) return null;
+  // Only render on HTTPS or localhost (WebAuthn requirement)
+  const isSecureContext = typeof window !== "undefined" && window.isSecureContext;
+  if (!available || !isSecureContext) return null;
 
   const enroll = async () => {
     setLoading(true);
@@ -390,8 +546,11 @@ function BiometricSection() {
       if (!finishRes.ok) throw new Error("Registration failed");
       localStorage.setItem("biometric_enrolled", "true");
       setEnrolled(true);
+      showToast(t("biometricEnrolled"), "success");
     } catch (e: any) {
-      if (e.name !== "NotAllowedError") console.error(e);
+      if (e.name !== "NotAllowedError") {
+        showToast(t("biometricFailed"), "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -400,6 +559,7 @@ function BiometricSection() {
   const revoke = () => {
     localStorage.removeItem("biometric_enrolled");
     setEnrolled(false);
+    showToast(t("biometricRemoved"), "success");
   };
 
   return (
@@ -408,15 +568,12 @@ function BiometricSection() {
         <Fingerprint className="h-4 w-4 text-[#7dc0ff]" />
         <h2 className="font-semibold text-[var(--foreground)]">Face ID / Touch ID</h2>
       </div>
-      <p className="text-sm text-[var(--muted)] mb-3">
-        {enrolled ? "Biometric login is enabled for this device." : "Enable biometric login for faster sign-in."}
-      </p>
       {enrolled ? (
         <button
           onClick={revoke}
           className="text-sm text-red-500 font-medium hover:underline"
         >
-          Remove this device
+          {t("disableBiometric")}
         </button>
       ) : (
         <button
@@ -429,7 +586,7 @@ function BiometricSection() {
           ) : (
             <Fingerprint className="h-3.5 w-3.5" />
           )}
-          Enable Biometric Login
+          {t("enableBiometric")}
         </button>
       )}
     </div>
@@ -437,6 +594,7 @@ function BiometricSection() {
 }
 
 function CreateFamilyForm({ onCreated }: { onCreated: (f: any) => void }) {
+  const t = useTranslations("settings");
   const { refreshUser } = useAuth();
   const { showToast } = useToast();
   const [name, setName] = useState("");
@@ -471,7 +629,8 @@ function CreateFamilyForm({ onCreated }: { onCreated: (f: any) => void }) {
         placeholder="Family name"
         className="flex-1 bg-[var(--background)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-[#7dc0ff]"
       />
-      <Button onClick={create} loading={creating} size="sm">Create</Button>
+      <Button onClick={create} loading={creating} size="sm">{t("create")}</Button>
     </div>
   );
 }
+
