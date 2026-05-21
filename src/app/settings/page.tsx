@@ -32,6 +32,9 @@ export default function SettingsPage() {
   const t = useTranslations("settings");
   const router = useRouter();
   const { user, loading, logout, refreshUser } = useAuth();
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "");
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
 
@@ -391,7 +394,7 @@ export default function SettingsPage() {
           {family?.familyCode && (
             <div className="p-4 bg-white rounded-2xl">
               <QRCodeSVG
-                value={`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/join-family?code=${family.familyCode}`}
+                value={`${appUrl}/join-family?code=${family.familyCode}`}
                 size={200}
               />
             </div>
@@ -406,14 +409,14 @@ export default function SettingsPage() {
           {user?.userCode && (
             <div className="p-4 bg-white rounded-2xl">
               <QRCodeSVG
-                value={`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invite/friend?code=${user.userCode}`}
+                value={`${appUrl}/invite/friend?code=${user.userCode}`}
                 size={200}
               />
             </div>
           )}
           <p className="text-sm font-mono text-[var(--foreground)]">{user?.userCode}</p>
           <button
-            onClick={() => copyToClipboard(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invite/friend?code=${user?.userCode}`)}
+            onClick={() => copyToClipboard(`${appUrl}/invite/friend?code=${user?.userCode}`)}
             className="flex items-center gap-2 text-sm text-[#7dc0ff] font-medium"
           >
             <Copy className="h-3.5 w-3.5" />

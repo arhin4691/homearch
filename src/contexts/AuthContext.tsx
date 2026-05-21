@@ -49,6 +49,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshUser();
+
+    // Re-fetch user when the tab regains focus so changes made server-side
+    // (e.g. family owner accepts a join request) are reflected immediately.
+    const handleFocus = () => refreshUser();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshUser();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [refreshUser]);
 
   const login = useCallback(async (emailOrUsername: string, password: string, rememberMe = false) => {
