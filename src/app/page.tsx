@@ -87,15 +87,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] gap-4">
         <Image
           src="/icons/icon.png"
           alt="Homearch"
-          className="h-18 w-18 mb-4"
+          className="h-18 w-18"
           width={72}
           height={72}
         />
-        <br />
         <div className="w-8 h-8 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
       </div>
     );
