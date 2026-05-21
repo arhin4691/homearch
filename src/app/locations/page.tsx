@@ -270,7 +270,7 @@ export default function LocationsPage() {
             setTagInput("");
             setShowCreate(true);
           }}
-          className="fixed bottom-28 right-10 z-30 w-16 h-16 rounded-4xl bg-[#7dc0ff] text-white shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center hover:bg-[#5aabff] transition-colors lg:bottom-8 lg:right-8"
+          className="fixed bottom-28 right-5 z-30 w-16 h-16 rounded-4xl bg-[#7dc0ff] text-white shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center hover:bg-[#5aabff] transition-colors lg:bottom-8 lg:right-8"
         >
           <Plus className="h-6 w-6" />
         </motion.button>

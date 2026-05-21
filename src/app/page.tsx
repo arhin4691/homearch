@@ -293,7 +293,7 @@ export default function DashboardPage() {
       {user.familyId && (
         <button
           onClick={() => router.push("/items/new")}
-          className="lg:hidden fixed bottom-28 right-10 w-16 h-16 bg-[#7dc0ff] hover:bg-[#5aabff] text-white rounded-4xl shadow-lg shadow-[#7dc0ff]/40 flex items-center justify-center transition-all active:scale-95 z-30"
+          className="lg:hidden fixed bottom-28 right-5 w-16 h-16 bg-[#7dc0ff] hover:bg-[#5aabff] text-white rounded-4xl shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center transition-all active:scale-95 z-30"
         >
           <Plus className="h-6 w-6" />
         </button>

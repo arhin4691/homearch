@@ -25,22 +25,29 @@ export function BottomNav() {
       <div className="flex items-center justify-around px-2 h-16 max-w-lg mx-auto">
         {tabs.map((tab) => {
           const isActive =
-            tab.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(tab.href);
+            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
 
           if (tab.isCenter) {
             return (
-              <Link key={tab.href} href={tab.href} className="flex items-center justify-center -mt-6">
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className="flex items-center justify-center -mt-6"
+              >
                 <motion.div
                   whileTap={{ scale: 0.92 }}
                   className={clsx(
                     "relative w-20 h-20 rounded-2xl shadow-2xl shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
                     "transition-all duration-200",
-                    !isActive ? "scale-105" : ""
+                    !isActive ? "scale-105" : "",
                   )}
                 >
-                  <Image src="/icons/icon.png" alt="Homearch" fill className="object-cover" />
+                  <Image
+                    src="/icons/icon.png"
+                    alt="Homearch"
+                    fill
+                    className="object-cover"
+                  />
                 </motion.div>
               </Link>
             );
@@ -54,20 +61,30 @@ export function BottomNav() {
               href={tab.href}
               className="flex flex-col items-center justify-center gap-1 flex-1 py-1"
             >
-              <motion.div whileTap={{ scale: 0.9 }} className="relative flex flex-col items-center gap-0.5">
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                className="relative flex flex-col items-center gap-0.5"
+              >
                 <Icon
                   className={clsx(
                     "h-5 w-5 transition-colors duration-200",
-                    isActive ? "text-[#7dc0ff]" : "text-[var(--muted)]"
+                    isActive ? "text-[#7dc0ff]" : "text-[var(--muted)]",
                   )}
                 />
                 <span
                   className={clsx(
                     "text-[10px] font-medium transition-colors duration-200",
-                    isActive ? "text-[#7dc0ff]" : "text-[var(--muted)]"
+                    isActive ? "text-[#7dc0ff]" : "text-[var(--muted)]",
                   )}
                 >
-                  {t(tab.key as "items" | "locations" | "home" | "favorites" | "settings")}
+                  {t(
+                    tab.key as
+                      | "items"
+                      | "locations"
+                      | "home"
+                      | "favorites"
+                      | "settings",
+                  )}
                 </span>
                 {isActive && (
                   <motion.div
