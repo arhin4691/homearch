@@ -252,7 +252,7 @@ export default function SettingsPage() {
         {/* Language */}
         <Section icon={<Globe className="h-4 w-4 text-green-500" />} title={t("language")}>
           <div className="flex gap-2">
-            {[{ code: "en", label: "English" }, { code: "zh-HK", label: "蝜?銝剜?" }].map((lang) => (
+            {[{ code: "en", label: "English" }, { code: "zh-HK", label: "繁體中文" }].map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => changeLocale(lang.code)}
