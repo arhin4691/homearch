@@ -3,7 +3,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Search, Bell, Package, MapPin, AlertTriangle, TrendingUp, Plus, RefreshCw, ScanLine, Star } from "lucide-react";
+import {
+  Search,
+  Bell,
+  Package,
+  MapPin,
+  AlertTriangle,
+  TrendingUp,
+  Plus,
+  RefreshCw,
+  ScanLine,
+  Star,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
@@ -77,7 +88,15 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <Image src="/icons/icon.png" alt="Homearch" className="h-12 w-12 mb-4" width={48} height={48} />
+        <div>
+          <Image
+            src="/icons/icon.png"
+            alt="Homearch"
+            className="h-18 w-18 mb-4"
+            width={72}
+            height={72}
+          />
+        </div>
         <div className="w-8 h-8 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -90,7 +109,9 @@ export default function DashboardPage() {
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-s text-[var(--muted)] uppercase tracking-widest font-medium">{t("title")}</p>
+          <p className="text-s text-[var(--muted)] uppercase tracking-widest font-medium">
+            {t("title")}
+          </p>
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {t("hello")}, {user.name.split(" ")[0]} 👋
           </h1>
@@ -131,10 +152,27 @@ export default function DashboardPage() {
       {/* ── Quick actions ──────────────────────────────── */}
       {user.familyId && (
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
-          <QuickAction icon={<Plus className="h-4 w-4" />} label={t("addItem")} onClick={() => router.push("/items/new")} primary />
-          <QuickAction icon={<MapPin className="h-4 w-4" />} label={t("addLocation")} onClick={() => router.push("/locations")} />
-          <QuickAction icon={<ScanLine className="h-4 w-4" />} label={t("scan")} onClick={() => router.push("/items/new")} />
-          <QuickAction icon={<Star className="h-4 w-4" />} label={t("favorites")} onClick={() => router.push("/favorites")} />
+          <QuickAction
+            icon={<Plus className="h-4 w-4" />}
+            label={t("addItem")}
+            onClick={() => router.push("/items/new")}
+            primary
+          />
+          <QuickAction
+            icon={<MapPin className="h-4 w-4" />}
+            label={t("addLocation")}
+            onClick={() => router.push("/locations")}
+          />
+          <QuickAction
+            icon={<ScanLine className="h-4 w-4" />}
+            label={t("scan")}
+            onClick={() => router.push("/items/new")}
+          />
+          <QuickAction
+            icon={<Star className="h-4 w-4" />}
+            label={t("favorites")}
+            onClick={() => router.push("/favorites")}
+          />
         </div>
       )}
 
@@ -145,9 +183,19 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-[#7dc0ff]/10 border border-[#7dc0ff]/30 rounded-2xl p-5 mb-6"
         >
-          <p className="font-semibold text-[var(--foreground)] mb-1">{t("setUpFamily")}</p>
-          <p className="text-sm text-[var(--muted)] mb-3">{t("createOrJoinFamily")}</p>
-          <Button onClick={() => router.push("/settings")} size="sm" variant="outline">{t("goToSettings")}</Button>
+          <p className="font-semibold text-[var(--foreground)] mb-1">
+            {t("setUpFamily")}
+          </p>
+          <p className="text-sm text-[var(--muted)] mb-3">
+            {t("createOrJoinFamily")}
+          </p>
+          <Button
+            onClick={() => router.push("/settings")}
+            size="sm"
+            variant="outline"
+          >
+            {t("goToSettings")}
+          </Button>
         </motion.div>
       )}
 
@@ -194,8 +242,15 @@ export default function DashboardPage() {
             {data.recentItems.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-[var(--foreground)]">{t("recentItems")}</h2>
-                  <button onClick={() => router.push("/items")} className="text-xs text-[#7dc0ff] font-medium">{t("viewAll")}</button>
+                  <h2 className="font-semibold text-[var(--foreground)]">
+                    {t("recentItems")}
+                  </h2>
+                  <button
+                    onClick={() => router.push("/items")}
+                    className="text-xs text-[#7dc0ff] font-medium"
+                  >
+                    {t("viewAll")}
+                  </button>
                 </div>
                 <div className="flex flex-col gap-3">
                   {data.recentItems.map((item) => (
@@ -211,12 +266,23 @@ export default function DashboardPage() {
             {data.expiringList.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-[var(--foreground)]">{t("expiringItems")}</h2>
-                  <button onClick={() => router.push("/items?filter=expiring")} className="text-xs text-[#7dc0ff] font-medium">{t("viewAll")}</button>
+                  <h2 className="font-semibold text-[var(--foreground)]">
+                    {t("expiringItems")}
+                  </h2>
+                  <button
+                    onClick={() => router.push("/items?filter=expiring")}
+                    className="text-xs text-[#7dc0ff] font-medium"
+                  >
+                    {t("viewAll")}
+                  </button>
                 </div>
                 <div className="flex flex-col gap-3">
                   {data.expiringList.map((item) => (
-                    <ItemCard key={item.id} item={{ ...item, hasExpiry: true }} view="list" />
+                    <ItemCard
+                      key={item.id}
+                      item={{ ...item, hasExpiry: true }}
+                      view="list"
+                    />
                   ))}
                 </div>
               </section>
