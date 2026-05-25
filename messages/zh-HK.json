@@ -105,7 +105,8 @@
       "Documents": "文件",
       "Tools": "工具",
       "Other": "其他"
-    }
+    },
+    "dayLeft": "天剩餘"
   },
   "locations": {
     "title": "位置",

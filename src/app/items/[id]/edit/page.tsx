@@ -129,8 +129,6 @@ export default function EditItemPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  console.log(locations)
-
   const filteredLocations = locations.filter((loc) =>
     loc.name.toLowerCase().includes(locationSearch.toLowerCase())
   );

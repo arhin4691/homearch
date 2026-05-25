@@ -105,7 +105,8 @@
       "Documents": "Documents",
       "Tools": "Tools",
       "Other": "Other"
-    }
+    },
+    "dayLeft": "day(s) left"
   },
   "locations": {
     "title": "Locations",

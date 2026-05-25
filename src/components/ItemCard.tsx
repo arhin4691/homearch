@@ -49,7 +49,7 @@ export function ItemCard({ item, onFavoriteToggle, view = "grid" }: ItemCardProp
           <p className="font-medium text-[var(--foreground)] truncate">{item.name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <CategoryBadge label={item.category} />
-            {days !== null && <ExpiryBadge daysUntilExpiry={days} />}
+            {days !== null && <ExpiryBadge daysUntilExpiry={days} orgExpDate={item.expiryDate} />}
           </div>
           {item.location && (
             <div className="flex items-center gap-1 mt-1">
@@ -100,7 +100,7 @@ export function ItemCard({ item, onFavoriteToggle, view = "grid" }: ItemCardProp
         )}
         {days !== null && days <= 7 && (
           <div className="absolute bottom-2 left-2">
-            <ExpiryBadge daysUntilExpiry={days} />
+            <ExpiryBadge daysUntilExpiry={days} orgExpDate={item.expiryDate} />
           </div>
         )}
       </div>

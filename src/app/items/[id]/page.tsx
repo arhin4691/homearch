@@ -4,7 +4,19 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit, Trash2, Heart, MapPin, Tag, Calendar, Clock, Minus, Plus, Package } from "lucide-react";
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
+  Heart,
+  MapPin,
+  Tag,
+  Calendar,
+  Clock,
+  Minus,
+  Plus,
+  Package,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -31,7 +43,9 @@ interface ItemDetail {
 
 function getDays(date?: string) {
   if (!date) return null;
-  return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return Math.ceil(
+    (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
 }
 
 export default function ItemDetailPage() {
@@ -59,13 +73,17 @@ export default function ItemDetailPage() {
     }
   }, [id, router]);
 
-  useEffect(() => { fetchItem(); }, [fetchItem]);
+  useEffect(() => {
+    fetchItem();
+  }, [fetchItem]);
 
   const toggleFavorite = async () => {
     const res = await fetch(`/api/items/${id}/favorite`, { method: "POST" });
     if (res.ok) {
       const json = await res.json();
-      setItem((prev) => prev ? { ...prev, isFavorite: json.data.isFavorite } : prev);
+      setItem((prev) =>
+        prev ? { ...prev, isFavorite: json.data.isFavorite } : prev,
+      );
     }
   };
 
@@ -80,7 +98,9 @@ export default function ItemDetailPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        setItem((prev) => prev ? { ...prev, quantity: json.data.quantity } : prev);
+        setItem((prev) =>
+          prev ? { ...prev, quantity: json.data.quantity } : prev,
+        );
       }
     } finally {
       setAdjusting(false);
@@ -100,11 +120,12 @@ export default function ItemDetailPage() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
 
   if (!item) return null;
 
@@ -114,7 +135,10 @@ export default function ItemDetailPage() {
     <AppShell>
       {/* Back & actions */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => router.back()} className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)]">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)]"
+        >
           <ArrowLeft className="h-4 w-4 text-[var(--foreground)]" />
         </button>
         <div className="flex items-center gap-2">
@@ -122,7 +146,9 @@ export default function ItemDetailPage() {
             onClick={toggleFavorite}
             className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)]"
           >
-            <Heart className={`h-4 w-4 ${item.isFavorite ? "fill-red-500 text-red-500" : "text-[var(--foreground)]"}`} />
+            <Heart
+              className={`h-4 w-4 ${item.isFavorite ? "fill-red-500 text-red-500" : "text-[var(--foreground)]"}`}
+            />
           </button>
           <button
             onClick={() => router.push(`/items/${id}/edit`)}
@@ -146,15 +172,28 @@ export default function ItemDetailPage() {
         className="relative w-full h-56 rounded-2xl overflow-hidden bg-[var(--card)] border border-[var(--card-border)] mb-5"
       >
         {item.imageUrl ? (
-          <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+          <Image
+            src={item.imageUrl}
+            alt={item.name}
+            fill
+            className="object-cover"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-6xl">📦</div>
+          <div className="w-full h-full flex items-center justify-center text-6xl">
+            📦
+          </div>
         )}
       </motion.div>
 
       {/* Name & badges */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
-        <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">{item.name}</h1>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-5"
+      >
+        <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">
+          {item.name}
+        </h1>
         <div className="flex items-center gap-2 flex-wrap">
           <CategoryBadge label={item.category} />
           {days !== null && <ExpiryBadge daysUntilExpiry={days} />}
@@ -179,7 +218,9 @@ export default function ItemDetailPage() {
             >
               <Minus className="h-3.5 w-3.5 text-[var(--foreground)]" />
             </button>
-            <span className={`w-10 text-center text-lg font-bold tabular-nums ${(item.quantity ?? 1) <= 2 ? "text-orange-500" : "text-[var(--foreground)]"}`}>
+            <span
+              className={`w-10 text-center text-lg font-bold tabular-nums ${(item.quantity ?? 1) <= 2 ? "text-orange-500" : "text-[var(--foreground)]"}`}
+            >
               {item.quantity ?? 1}
             </span>
             <button
@@ -193,16 +234,32 @@ export default function ItemDetailPage() {
         </div>
 
         {item.location && (
-          <DetailRow icon={<MapPin className="h-4 w-4 text-purple-500" />} label="Location" value={item.location.name} />
+          <DetailRow
+            icon={<MapPin className="h-4 w-4 text-purple-500" />}
+            label="Location"
+            value={item.location.name}
+          />
         )}
         {item.hasExpiry && item.expiryDate && (
-          <DetailRow icon={<Calendar className="h-4 w-4 text-red-500" />} label={t("expires")} value={new Date(item.expiryDate).toLocaleDateString()} />
+          <DetailRow
+            icon={<Calendar className="h-4 w-4 text-red-500" />}
+            label={t("expires")}
+            value={new Date(item.expiryDate).toLocaleDateString()}
+          />
         )}
         {item.hasExpiry && item.bestBeforeDate && (
-          <DetailRow icon={<Clock className="h-4 w-4 text-orange-500" />} label={t("bestBefore")} value={new Date(item.bestBeforeDate).toLocaleDateString()} />
+          <DetailRow
+            icon={<Clock className="h-4 w-4 text-orange-500" />}
+            label={t("bestBefore")}
+            value={new Date(item.bestBeforeDate).toLocaleDateString()}
+          />
         )}
         {item.uploader && (
-          <DetailRow icon={<span className="text-base">👤</span>} label={t("addedBy")} value={item.uploader.name} />
+          <DetailRow
+            icon={<span className="text-base">👤</span>}
+            label={t("addedBy")}
+            value={item.uploader.name}
+          />
         )}
       </div>
 
@@ -211,11 +268,16 @@ export default function ItemDetailPage() {
         <div className="flex flex-col gap-2 mb-6">
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-[var(--muted)]" />
-            <span className="text-sm font-medium text-[var(--foreground)]">{t("hashTags")}</span>
+            <span className="text-sm font-medium text-[var(--foreground)]">
+              {t("hashTags")}
+            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {item.hashTags.map((tag) => (
-              <span key={tag} className="px-2.5 py-1 bg-[#7dc0ff]/10 text-[#7dc0ff] rounded-full text-xs font-medium">
+              <span
+                key={tag}
+                className="px-2.5 py-1 bg-[#7dc0ff]/10 text-[#7dc0ff] rounded-full text-xs font-medium"
+              >
                 #{tag}
               </span>
             ))}
@@ -229,8 +291,21 @@ export default function ItemDetailPage() {
         title="Delete Item"
         footer={
           <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setShowDelete(false)} fullWidth>Cancel</Button>
-            <Button variant="danger" onClick={deleteItem} loading={deleting} fullWidth>Delete</Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowDelete(false)}
+              fullWidth
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={deleteItem}
+              loading={deleting}
+              fullWidth
+            >
+              Delete
+            </Button>
           </div>
         }
       >
@@ -240,7 +315,15 @@ export default function ItemDetailPage() {
   );
 }
 
-function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-3 p-3 bg-[var(--card)] border border-[var(--card-border)] rounded-xl">
       <div className="w-8 h-8 rounded-lg bg-[var(--background)] flex items-center justify-center flex-shrink-0">
