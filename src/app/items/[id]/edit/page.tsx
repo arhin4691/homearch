@@ -67,7 +67,7 @@ export default function EditItemPage() {
   const tags = watch("hashTags");
 
   useEffect(() => {
-    fetch("/api/locations").then((r) => r.json()).then((d) => setLocations(d.data ?? []));
+    fetch("/api/locations").then((r) => r.json()).then((d) => setLocations(d.data.locations ?? []));
     fetch(`/api/items/${id}`)
       .then((r) => r.json())
       .then((d) => {
@@ -128,6 +128,8 @@ export default function EditItemPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  console.log(locations)
 
   const filteredLocations = locations.filter((loc) =>
     loc.name.toLowerCase().includes(locationSearch.toLowerCase())

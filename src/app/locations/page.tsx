@@ -55,24 +55,31 @@ export default function LocationsPage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  const fetchLocations = useCallback(async (pg: number, replace: boolean) => {
-    if (!user) return;
-    if (pg === 1) setFetching(true); else setLoadingMore(true);
-    try {
-      const params = new URLSearchParams({ page: String(pg), limit: String(PAGE_SIZE) });
-      const res = await fetch(`/api/locations?${params}`);
-      if (res.ok) {
-        const json = await res.json();
-        const incoming: Location[] = json.data.locations ?? [];
-        setLocations((prev) => replace ? incoming : [...prev, ...incoming]);
-        setHasMore(json.data.hasMore);
-        setPage(pg);
+  const fetchLocations = useCallback(
+    async (pg: number, replace: boolean) => {
+      if (!user) return;
+      if (pg === 1) setFetching(true);
+      else setLoadingMore(true);
+      try {
+        const params = new URLSearchParams({
+          page: String(pg),
+          limit: String(PAGE_SIZE),
+        });
+        const res = await fetch(`/api/locations?${params}`);
+        if (res.ok) {
+          const json = await res.json();
+          const incoming: Location[] = json.data.locations ?? [];
+          setLocations((prev) => (replace ? incoming : [...prev, ...incoming]));
+          setHasMore(json.data.hasMore);
+          setPage(pg);
+        }
+      } finally {
+        setFetching(false);
+        setLoadingMore(false);
       }
-    } finally {
-      setFetching(false);
-      setLoadingMore(false);
-    }
-  }, [user]);
+    },
+    [user],
+  );
 
   useEffect(() => {
     fetchLocations(1, true);
@@ -88,7 +95,7 @@ export default function LocationsPage() {
           fetchLocations(page + 1, false);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -114,7 +121,11 @@ export default function LocationsPage() {
       const url = editTarget
         ? `/api/locations/${editTarget.id}`
         : "/api/locations";
-      const payload: any = { name: form.name, description: form.description, hashTags: form.hashTags };
+      const payload: any = {
+        name: form.name,
+        description: form.description,
+        hashTags: form.hashTags,
+      };
       if (form.imageUrl) payload.imageUrl = form.imageUrl;
       if (form.imageFileId) payload.imageFileId = form.imageFileId;
 
@@ -124,10 +135,7 @@ export default function LocationsPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
-      showToast(
-        editTarget ? t("updated") : t("created"),
-        "success",
-      );
+      showToast(editTarget ? t("updated") : t("created"), "success");
       setShowCreate(false);
       setEditTarget(null);
       setTagInput("");
@@ -159,7 +167,9 @@ export default function LocationsPage() {
   return (
     <AppShell>
       <div className="mb-5">
-        <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)] mb-3">{t("title")}</h1>
+        <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)] mb-3">
+          {t("title")}
+        </h1>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)]" />
           <input
@@ -193,61 +203,90 @@ export default function LocationsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {locations.filter((loc) =>
-              loc.name.toLowerCase().includes(search.toLowerCase()) ||
-              (loc.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
-              (loc.hashTags ?? []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
-            ).map((loc) => (
-            <motion.div
-              key={loc.id}
-              whileTap={{ scale: 0.96 }}
-              className="bg-[var(--card)] border border-[var(--card-border)] rounded-2xl overflow-hidden cursor-pointer hover:border-[#7dc0ff]/50 hover:shadow-md hover:shadow-[#7dc0ff]/10 transition-all"
-              onClick={() => router.push(`/locations/${loc.id}`)}
-            >
-              <div className="relative w-full aspect-square bg-[var(--card-border)]">
-                {loc.imageUrl ? (
-                  <Image src={loc.imageUrl} alt={loc.name} fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">📍</div>
-                )}
-                {/* Edit/Delete buttons */}
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openEdit(loc); }}
-                    className="p-1.5 bg-black/40 backdrop-blur-sm rounded-full"
-                  >
-                    <Edit className="h-3.5 w-3.5 text-white" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(loc); }}
-                    className="p-1.5 bg-black/40 backdrop-blur-sm rounded-full"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-white" />
-                  </button>
-                </div>
-                {loc.itemCount !== undefined && loc.itemCount > 0 && (
-                  <div className="absolute bottom-2 left-2">
-                    <span className="text-xs bg-black/50 backdrop-blur-sm text-white px-2 py-0.5 rounded-full font-medium">
-                      {t("itemCount", { count: loc.itemCount })}
-                    </span>
+            {locations
+              ?.filter(
+                (loc) =>
+                  loc.name.toLowerCase().includes(search.toLowerCase()) ||
+                  (loc.description ?? "")
+                    .toLowerCase()
+                    .includes(search.toLowerCase()) ||
+                  (loc.hashTags ?? []).some((tag) =>
+                    tag.toLowerCase().includes(search.toLowerCase()),
+                  ),
+              )
+              .map((loc) => (
+                <motion.div
+                  key={loc.id}
+                  whileTap={{ scale: 0.96 }}
+                  className="bg-[var(--card)] border border-[var(--card-border)] rounded-2xl overflow-hidden cursor-pointer hover:border-[#7dc0ff]/50 hover:shadow-md hover:shadow-[#7dc0ff]/10 transition-all"
+                  onClick={() => router.push(`/locations/${loc.id}`)}
+                >
+                  <div className="relative w-full aspect-square bg-[var(--card-border)]">
+                    {loc.imageUrl ? (
+                      <Image
+                        src={loc.imageUrl}
+                        alt={loc.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">
+                        📍
+                      </div>
+                    )}
+                    {/* Edit/Delete buttons */}
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(loc);
+                        }}
+                        className="p-1.5 bg-black/40 backdrop-blur-sm rounded-full"
+                      >
+                        <Edit className="h-3.5 w-3.5 text-white" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(loc);
+                        }}
+                        className="p-1.5 bg-black/40 backdrop-blur-sm rounded-full"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-white" />
+                      </button>
+                    </div>
+                    {loc.itemCount !== undefined && loc.itemCount > 0 && (
+                      <div className="absolute bottom-2 left-2">
+                        <span className="text-xs bg-black/50 backdrop-blur-sm text-white px-2 py-0.5 rounded-full font-medium">
+                          {t("itemCount", { count: loc.itemCount })}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="p-3">
-                <p className="font-medium text-[var(--foreground)] truncate text-sm">{loc.name}</p>
-                {loc.description && (
-                  <p className="text-xs text-[var(--muted)] truncate mt-0.5">{loc.description}</p>
-                )}
-                {loc.hashTags && loc.hashTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {loc.hashTags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="text-[10px] text-[#7dc0ff] bg-[#7dc0ff]/10 px-1.5 py-0.5 rounded-full">#{tag}</span>
-                    ))}
+                  <div className="p-3">
+                    <p className="font-medium text-[var(--foreground)] truncate text-sm">
+                      {loc.name}
+                    </p>
+                    {loc.description && (
+                      <p className="text-xs text-[var(--muted)] truncate mt-0.5">
+                        {loc.description}
+                      </p>
+                    )}
+                    {loc.hashTags && loc.hashTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {loc.hashTags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[10px] text-[#7dc0ff] bg-[#7dc0ff]/10 px-1.5 py-0.5 rounded-full"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                </motion.div>
+              ))}
           </div>
 
           {/* Infinite scroll sentinel */}
@@ -266,7 +305,13 @@ export default function LocationsPage() {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => {
-            setForm({ name: "", description: "", imageUrl: "", imageFileId: "", hashTags: [] });
+            setForm({
+              name: "",
+              description: "",
+              imageUrl: "",
+              imageFileId: "",
+              hashTags: [],
+            });
             setTagInput("");
             setShowCreate(true);
           }}
@@ -331,7 +376,9 @@ export default function LocationsPage() {
           />
           {/* Hashtags */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[var(--foreground)]">{t("tags")}</label>
+            <label className="text-sm font-medium text-[var(--foreground)]">
+              {t("tags")}
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -343,7 +390,10 @@ export default function LocationsPage() {
                     if (!tagInput.trim()) return;
                     const tag = tagInput.trim().toLowerCase().replace(/^#/, "");
                     if (!form.hashTags.includes(tag)) {
-                      setForm((p) => ({ ...p, hashTags: [...p.hashTags, tag] }));
+                      setForm((p) => ({
+                        ...p,
+                        hashTags: [...p.hashTags, tag],
+                      }));
                     }
                     setTagInput("");
                   }
@@ -370,13 +420,23 @@ export default function LocationsPage() {
             {form.hashTags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {form.hashTags.map((tag) => (
-                  <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-[#7dc0ff]/10 text-[#7dc0ff] rounded-full text-xs font-medium">
+                  <span
+                    key={tag}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-[#7dc0ff]/10 text-[#7dc0ff] rounded-full text-xs font-medium"
+                  >
                     #{tag}
                     <button
                       type="button"
-                      onClick={() => setForm((p) => ({ ...p, hashTags: p.hashTags.filter((t) => t !== tag) }))}
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          hashTags: p.hashTags.filter((t) => t !== tag),
+                        }))
+                      }
                       className="ml-0.5 hover:text-red-500"
-                    >×</button>
+                    >
+                      ×
+                    </button>
                   </span>
                 ))}
               </div>
