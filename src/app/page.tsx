@@ -44,6 +44,7 @@ interface DashboardData {
     id: string;
     name: string;
     category: string;
+    quantity?: number;
     imageUrl?: string;
     hasExpiry: boolean;
     expiryDate?: string;

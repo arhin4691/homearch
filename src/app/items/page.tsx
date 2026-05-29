@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import { Plus, LayoutGrid, List, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,7 +27,12 @@ export default function ItemsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<ViewMode>("grid");
+  const [view, setView] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("items-view") as ViewMode) ?? "grid";
+    }
+    return "grid";
+  });
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState<string>(searchParams.get("category") ?? "");
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -104,7 +108,11 @@ export default function ItemsPage() {
         <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)]">{t("title")}</h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setView(view === "grid" ? "list" : "grid")}
+            onClick={() => {
+            const next: ViewMode = view === "grid" ? "list" : "grid";
+            setView(next);
+            localStorage.setItem("items-view", next);
+          }}
             className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)] text-[var(--foreground)]"
           >
             {view === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
@@ -165,14 +173,13 @@ export default function ItemsPage() {
         </div>
       ) : (
         <>
-          <motion.div
-            layout
+          <div
             className={view === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" : "flex flex-col gap-3"}
           >
             {items.map((item) => (
               <ItemCard key={item.id} item={item} onFavoriteToggle={toggleFavorite} view={view} />
             ))}
-          </motion.div>
+          </div>
 
           {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="h-4" />

@@ -62,6 +62,7 @@ export async function GET() {
         name: item.name,
         category: item.category,
         imageUrl: item.imageUrl,
+        quantity: (item as any).quantity ?? 1,
         hasExpiry: item.hasExpiry,
         expiryDate: item.expiryDate,
         location: item.locationId ? { name: (item.locationId as any).name } : null,

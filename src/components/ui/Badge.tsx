@@ -100,3 +100,29 @@ export function ExpiryBadge({
     </>
   );
 }
+
+interface QuantityBadgeProps {
+  quantity: number;
+  className?: string;
+}
+
+export function QuantityBadge({ quantity, className }: QuantityBadgeProps) {
+  const color =
+    quantity === 0
+      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+      : quantity <= 2
+      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
+
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ms-2",
+        color,
+        className,
+      )}
+    >
+      ×{quantity}
+    </span>
+  );
+}

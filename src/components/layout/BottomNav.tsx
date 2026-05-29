@@ -37,7 +37,7 @@ export function BottomNav() {
                 <motion.div
                   whileTap={{ scale: 0.92 }}
                   className={clsx(
-                    "relative w-20 h-20 rounded-2xl shadow-2xl shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
+                    "relative w-18 h-18 rounded-2xl shadow-2xl shadow-[#7dc0ff]/40 flex items-center justify-center overflow-hidden",
                     "transition-all duration-200",
                     !isActive ? "scale-105" : "",
                   )}
