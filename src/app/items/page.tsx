@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, LayoutGrid, List, Search } from "lucide-react";
+import { Plus, LayoutGrid, List, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
@@ -11,9 +11,12 @@ import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { ITEM_CATEGORIES } from "@/lib/constants";
 import { clsx } from "clsx";
+import { AnimatePresence, motion } from "framer-motion";
 
 const PAGE_SIZE = 6;
 type ViewMode = "grid" | "list";
+type SortOption = "newest" | "oldest" | "name_asc" | "name_desc" | "qty_asc" | "qty_desc";
+type FilterOption = "" | "expired" | "expiring";
 
 export default function ItemsPage() {
   const t = useTranslations("items");
@@ -35,11 +38,26 @@ export default function ItemsPage() {
   });
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState<string>(searchParams.get("category") ?? "");
+  const [filter, setFilter] = useState<FilterOption>((searchParams.get("filter") as FilterOption) ?? "");
+  const [sort, setSort] = useState<SortOption>("newest");
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   const fetchItems = useCallback(async (pg: number, replace: boolean) => {
     if (!user) return;
@@ -48,6 +66,8 @@ export default function ItemsPage() {
       const params = new URLSearchParams();
       if (search) params.set("q", search);
       if (category) params.set("category", category);
+      if (filter) params.set("filter", filter);
+      if (sort !== "newest") params.set("sort", sort);
       params.set("page", String(pg));
       params.set("limit", String(PAGE_SIZE));
       const res = await fetch(`/api/items?${params}`);
@@ -64,7 +84,7 @@ export default function ItemsPage() {
       setFetching(false);
       setLoadingMore(false);
     }
-  }, [user, search, category, showToast, t]);
+  }, [user, search, category, filter, sort, showToast, t]);
 
   // Reset and refetch when filters change
   useEffect(() => {
@@ -102,46 +122,137 @@ export default function ItemsPage() {
     } catch {}
   };
 
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+    { value: "newest", label: t("sortNewest") },
+    { value: "oldest", label: t("sortOldest") },
+    { value: "name_asc", label: t("sortNameAsc") },
+    { value: "name_desc", label: t("sortNameDesc") },
+    { value: "qty_asc", label: t("sortQtyAsc") },
+    { value: "qty_desc", label: t("sortQtyDesc") },
+  ];
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-4">
         <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)]">{t("title")}</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
+        <button
+          onClick={() => {
             const next: ViewMode = view === "grid" ? "list" : "grid";
             setView(next);
             localStorage.setItem("items-view", next);
           }}
-            className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)] text-[var(--foreground)]"
+          className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)] text-[var(--foreground)]"
+        >
+          {view === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {/* Search + Sort row */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex-1">
+          <Input
+            placeholder={t("searchPlaceholder")}
+            leftIcon={<Search className="h-4 w-4" />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        {/* Sort dropdown */}
+        <div className="relative flex-shrink-0" ref={sortRef}>
+          <button
+            onClick={() => setSortOpen((o) => !o)}
+            className="flex items-center gap-1.5 px-3 h-10 rounded-xl bg-[var(--card)] border border-[var(--card-border)] text-[var(--foreground)] text-xs font-medium"
           >
-            {view === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{SORT_OPTIONS.find((o) => o.value === sort)?.label}</span>
+            <ChevronDown className={clsx("h-3 w-3 transition-transform", sortOpen && "rotate-180")} />
           </button>
+          <AnimatePresence>
+            {sortOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="absolute right-0 top-full mt-1 z-30 bg-[var(--card)] border border-[var(--card-border)] rounded-xl shadow-xl overflow-hidden min-w-[160px]"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setSort(opt.value); setSortOpen(false); }}
+                    className={clsx(
+                      "w-full px-4 py-2.5 text-sm text-left transition-colors",
+                      sort === opt.value
+                        ? "text-[#7dc0ff] font-semibold bg-[#7dc0ff]/8"
+                        : "text-[var(--foreground)] hover:bg-[var(--background)]"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-4">
-        <Input
-          placeholder={t("searchPlaceholder")}
-          leftIcon={<Search className="h-4 w-4" />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      {/* Active filter banner */}
+      <AnimatePresence>
+        {filter && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3 overflow-hidden"
+          >
+            <div className={clsx(
+              "flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium",
+              filter === "expired"
+                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+            )}>
+              <span>{filter === "expired" ? t("filterExpired") : t("filterExpiring")}</span>
+              <button onClick={() => setFilter("")}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Category Filter */}
+      {/* Category + quick-filter chips */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
         <button
           onClick={() => setCategory("")}
           className={clsx(
             "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-            category === ""
+            category === "" && !filter
               ? "bg-[#7dc0ff] text-white"
               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)]"
           )}
         >
           {t("filterAll")}
+        </button>
+        <button
+          onClick={() => setFilter(filter === "expired" ? "" : "expired")}
+          className={clsx(
+            "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+            filter === "expired"
+              ? "bg-red-500 text-white"
+              : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)]"
+          )}
+        >
+          {t("filterExpired")}
+        </button>
+        <button
+          onClick={() => setFilter(filter === "expiring" ? "" : "expiring")}
+          className={clsx(
+            "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+            filter === "expiring"
+              ? "bg-orange-500 text-white"
+              : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)]"
+          )}
+        >
+          {t("filterExpiring")}
         </button>
         {ITEM_CATEGORIES.map((cat) => (
           <button

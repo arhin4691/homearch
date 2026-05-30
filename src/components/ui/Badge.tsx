@@ -22,12 +22,12 @@ interface BadgeProps {
   className?: string;
 }
 
-export function CategoryBadge({ label, className }: BadgeProps) {
+export function CategoryBadge({ label, className, labelForClass }: BadgeProps & { labelForClass?: string }) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        categoryColors[label] ?? categoryColors.Other,
+        "inline-flex items-center px-2 py-0.5 rounded-full text-[0.65rem] font-medium",
+        categoryColors[labelForClass ?? label] ?? categoryColors.Other,
         className,
       )}
     >
@@ -55,10 +55,10 @@ export function ExpiryBadge({
 
   if (daysUntilExpiry < 0) {
     color = "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-    label = "Expired";
+    label = t("expired");
   } else if (daysUntilExpiry === 0) {
     color = "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-    label = "Expires today";
+    label = t("expiresToday");
   } else if (daysUntilExpiry <= 3) {
     color = "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
     label = `${daysUntilExpiry} ${t("dayLeft")}`;
@@ -104,15 +104,31 @@ export function ExpiryBadge({
 interface QuantityBadgeProps {
   quantity: number;
   className?: string;
+  size?: "sm" | "lg";
 }
 
-export function QuantityBadge({ quantity, className }: QuantityBadgeProps) {
+export function QuantityBadge({ quantity, className, size = "sm" }: QuantityBadgeProps) {
   const color =
     quantity === 0
       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
       : quantity <= 2
       ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
       : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
+
+  if (size === "lg") {
+    return (
+      <div
+        className={clsx(
+          "flex flex-col items-center justify-center rounded-xl px-3 py-1.5 min-w-[48px] flex-shrink-0",
+          color,
+          className,
+        )}
+      >
+        <span className="text-xl font-bold leading-none">{quantity}</span>
+        <span className="text-[10px] font-medium opacity-60 mt-0.5 uppercase tracking-wide">qty</span>
+      </div>
+    );
+  }
 
   return (
     <span

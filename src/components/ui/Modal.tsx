@@ -4,6 +4,7 @@ import { ReactNode, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "./Button";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 interface ModalProps {
   open: boolean;
@@ -17,6 +18,8 @@ interface ModalProps {
 const sizeMap = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg" };
 
 export function Modal({ open, onClose, title, children, footer, size = "md" }: ModalProps) {
+  useBodyScrollLock(open);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();

@@ -9,6 +9,7 @@ import {
   ExpiryBadge,
   QuantityBadge,
 } from "@/components/ui/Badge";
+import { useTranslations } from "next-intl";
 
 interface ItemCardProps {
   item: {
@@ -39,6 +40,7 @@ export function ItemCard({
 }: ItemCardProps) {
   const router = useRouter();
   const days = item.hasExpiry ? getDaysUntilExpiry(item.expiryDate) : null;
+  const t = useTranslations("items");
 
   if (view === "list") {
     return (
@@ -73,9 +75,6 @@ export function ItemCard({
         <div className="flex-1 min-w-0">
           <p className="font-medium text-[var(--foreground)] truncate">
             {item.name}
-            {item.quantity !== undefined && (
-              <QuantityBadge quantity={item.quantity} />
-            )}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {days !== null && (
@@ -87,7 +86,10 @@ export function ItemCard({
           </div>
           {item.location && (
             <div className="flex items-center gap-1 mt-1">
-            <CategoryBadge label={item.category} />
+              <CategoryBadge
+                label={t(`categories.${item.category}`)}
+                labelForClass={item.category}
+              />
               <MapPin className="h-3 w-3 text-[var(--muted)]" />
               <span className="text-xs text-[var(--muted)] truncate">
                 {item.location.name}
@@ -95,6 +97,9 @@ export function ItemCard({
             </div>
           )}
         </div>
+        {item.quantity !== undefined && (
+          <QuantityBadge quantity={item.quantity} size="lg" />
+        )}
         {onFavoriteToggle && (
           <button
             onClick={(e) => {
@@ -168,14 +173,14 @@ export function ItemCard({
       <div className="p-3">
         <p className="font-medium text-[var(--foreground)] truncate text-sm">
           {item.name}
-          {item.quantity !== undefined && (
-            <QuantityBadge quantity={item.quantity} />
-          )}
         </p>
         <div className="flex items-center justify-between mt-1.5">
           <div className="flex items-center gap-1.5">
             <CategoryBadge label={item.category} />
           </div>
+          {item.quantity !== undefined && (
+            <QuantityBadge quantity={item.quantity} size="lg" />
+          )}
         </div>
         <div className="flex items-center justify-between mt-1.5">
           {item.location && (

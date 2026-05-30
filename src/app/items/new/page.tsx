@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useToast } from "@/components/ui/Toast";
 import { ITEM_CATEGORIES } from "@/lib/constants";
 import { useEffect } from "react";
@@ -194,7 +195,7 @@ export default function NewItemPage() {
 
         {/* Quantity */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[var(--foreground)]">Quantity</label>
+          <label className="text-sm font-medium text-[var(--foreground)]">{t("quantity")}</label>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -315,16 +316,40 @@ export default function NewItemPage() {
           />
         </div>
 
-        {hasExpiry && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="flex flex-col gap-4"
-          >
-            <Input label={t("expiryDate")} type="date" {...register("expiryDate")} />
-            <Input label={t("bestBeforeDate")} type="date" {...register("bestBeforeDate")} />
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {hasExpiry && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="flex flex-col gap-4"
+            >
+              <Controller
+                control={control}
+                name="expiryDate"
+                render={({ field }) => (
+                  <DatePicker
+                    label={t("expiryDate")}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.expiryDate?.message}
+                  />
+                )}
+              />
+              <Controller
+                control={control}
+                name="bestBeforeDate"
+                render={({ field }) => (
+                  <DatePicker
+                    label={t("bestBeforeDate")}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.bestBeforeDate?.message}
+                  />
+                )}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Hashtags */}
         <div className="flex flex-col gap-2">

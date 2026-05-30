@@ -106,7 +106,12 @@ export default function DashboardPage() {
   return (
     <AppShell>
       {/* ── Header ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between mb-6"
+      >
         <div>
           <p className="text-s text-[var(--muted)] uppercase tracking-widest font-medium">
             {t("title")}
@@ -136,21 +141,32 @@ export default function DashboardPage() {
             ) : null}
           </button> */}
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── Search ─────────────────────────────────────── */}
-      <form onSubmit={handleSearch} className="mb-6">
+      {/* ── Search ────────────────────────────────────────── */}
+      <motion.form
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.08 }}
+        onSubmit={handleSearch}
+        className="mb-6"
+      >
         <Input
           placeholder={t("searchPlaceholder")}
           leftIcon={<Search className="h-4 w-4" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-      </form>
+      </motion.form>
 
       {/* ── Quick actions ──────────────────────────────── */}
       {user.familyId && (
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.14 }}
+          className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none"
+        >
           <QuickAction
             icon={<Plus className="h-4 w-4" />}
             label={t("addItem")}
@@ -172,7 +188,7 @@ export default function DashboardPage() {
             label={t("favorites")}
             onClick={() => router.push("/favorites")}
           />
-        </div>
+        </motion.div>
       )}
 
       {/* ── Family setup prompt ────────────────────────── */}
@@ -200,11 +216,19 @@ export default function DashboardPage() {
 
       {data && (
         /* ── Desktop two-column layout ─────────────────── */
-        <div className="lg:grid lg:grid-cols-3 lg:gap-6">
+        <motion.div
+          variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+          initial="hidden"
+          animate="show"
+          className="lg:grid lg:grid-cols-3 lg:gap-6"
+        >
           {/* Left column */}
           <div className="lg:col-span-2 flex flex-col gap-6">
             {/* Stat cards */}
-            <div className="grid grid-cols-2 gap-3">
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+              className="grid grid-cols-2 gap-3"
+            >
               <StatCard
                 icon={<Package className="h-5 w-5 text-[#7dc0ff]" />}
                 label={t("totalItems")}
@@ -235,11 +259,13 @@ export default function DashboardPage() {
                 alert={data.stats.expiringItems > 0}
                 onClick={() => router.push("/items?filter=expiring")}
               />
-            </div>
+            </motion.div>
 
             {/* Recent items */}
             {data.recentItems.length > 0 && (
-              <section>
+              <motion.section
+                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-[var(--foreground)]">
                     {t("recentItems")}
@@ -252,18 +278,26 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {data.recentItems.map((item) => (
-                    <ItemCard key={item.id} item={item} view="list" />
+                  {data.recentItems.map((item, i) => (
+                    <motion.div
+                      key={item.id}
+                      variants={{ hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0 } }}
+                      transition={{ delay: i * 0.05 }}
+                    >
+                      <ItemCard item={item} view="list" />
+                    </motion.div>
                   ))}
                 </div>
-              </section>
+              </motion.section>
             )}
           </div>
 
           {/* Right column (desktop: expiring items) */}
           <div className="mt-6 lg:mt-0 flex flex-col gap-6">
             {data.expiringList.length > 0 && (
-              <section>
+              <motion.section
+                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-[var(--foreground)]">
                     {t("expiringItems")}
@@ -276,18 +310,23 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {data.expiringList.map((item) => (
-                    <ItemCard
+                  {data.expiringList.map((item, i) => (
+                    <motion.div
                       key={item.id}
-                      item={{ ...item, hasExpiry: true }}
-                      view="list"
-                    />
+                      variants={{ hidden: { opacity: 0, x: 12 }, show: { opacity: 1, x: 0 } }}
+                      transition={{ delay: i * 0.05 }}
+                    >
+                      <ItemCard
+                        item={{ ...item, hasExpiry: true }}
+                        view="list"
+                      />
+                    </motion.div>
                   ))}
                 </div>
-              </section>
+              </motion.section>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Mobile FAB — hidden on desktop (sidebar has Add Item button) */}

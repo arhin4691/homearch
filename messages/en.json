@@ -20,7 +20,8 @@
     "items": "Items",
     "locations": "Locations",
     "favorites": "Favorites",
-    "settings": "Settings"
+    "settings": "Settings",
+    "addItem": "Add Item"
   },
   "auth": {
     "login": "Login",
@@ -92,6 +93,14 @@
     "gridView": "Grid View",
     "listView": "List View",
     "filterAll": "All",
+    "filterExpired": "Expired",
+    "filterExpiring": "Expiring Soon",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "sortNameAsc": "Name A → Z",
+    "sortNameDesc": "Name Z → A",
+    "sortQtyAsc": "Least Qty First",
+    "sortQtyDesc": "Most Qty First",
     "empty": "No items yet",
     "searchPlaceholder": "Search items...",
     "loadError": "Failed to load items",
@@ -106,7 +115,8 @@
       "Tools": "Tools",
       "Other": "Other"
     },
-    "dayLeft": "day(s) left"
+    "dayLeft": "day(s) left",
+    "quantity": "Quantity"
   },
   "locations": {
     "title": "Locations",
@@ -260,5 +270,11 @@
     "errorDesc": "We couldn't process this invite. Please try again.",
     "retry": "Retry",
     "goHome": "Go Home"
+  },
+  "datePicker": {
+    "selectDate": "Select date",
+    "today": "Today",
+    "selectYear": "Select Year",
+    "cancel": "Cancel"
   }
 }

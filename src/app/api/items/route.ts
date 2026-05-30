@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
     const category = url.searchParams.get("category");
     const locationId = url.searchParams.get("locationId");
     const favorite = url.searchParams.get("favorite");
+    const filter = url.searchParams.get("filter"); // "expired" | "expiring"
+    const sort = url.searchParams.get("sort") ?? "newest";
     const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "6", 10)));
     const paginate = url.searchParams.get("paginate") !== "false";
@@ -47,6 +49,16 @@ export async function GET(req: NextRequest) {
     if (locationId) query.locationId = locationId;
     if (favorite === "true") query.favoritedBy = user._id;
 
+    if (filter === "expired") {
+      query.hasExpiry = true;
+      query.expiryDate = { $lt: new Date() };
+    } else if (filter === "expiring") {
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+      query.hasExpiry = true;
+      query.expiryDate = { $gte: new Date(), $lte: sevenDaysFromNow };
+    }
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -55,10 +67,20 @@ export async function GET(req: NextRequest) {
       ];
     }
 
+    const sortMap: Record<string, object> = {
+      newest: { createdAt: -1 },
+      oldest: { createdAt: 1 },
+      name_asc: { name: 1 },
+      name_desc: { name: -1 },
+      qty_asc: { quantity: 1 },
+      qty_desc: { quantity: -1 },
+    };
+    const sortQuery = sortMap[sort] ?? sortMap.newest;
+
     const baseQuery = Item.find(query)
       .populate("locationId", "name")
       .populate("uploaderId", "name avatarUrl")
-      .sort({ createdAt: -1 });
+      .sort(sortQuery);
 
     const items = paginate
       ? await baseQuery.skip((page - 1) * limit).limit(limit).lean()

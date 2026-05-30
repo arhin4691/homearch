@@ -77,7 +77,7 @@ export function Sidebar() {
           className="flex items-center justify-center gap-2 px-4 py-2.5 mb-4 rounded-xl bg-[#7dc0ff] text-white text-sm font-semibold hover:bg-[#5aabff] transition-colors shadow-md shadow-[#7dc0ff]/30"
         >
           <Plus className="h-4 w-4" />
-          Add Item
+          {t("addItem")}
         </motion.button>
       )}
 

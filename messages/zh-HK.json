@@ -20,7 +20,8 @@
     "items": "物品",
     "locations": "位置",
     "favorites": "收藏",
-    "settings": "設定"
+    "settings": "設定",
+    "addItem": "新增物品"
   },
   "auth": {
     "login": "登入",
@@ -92,6 +93,14 @@
     "gridView": "方格顯示",
     "listView": "列表顯示",
     "filterAll": "全部",
+    "filterExpired": "已過期",
+    "filterExpiring": "即將過期",
+    "sortNewest": "最新優先",
+    "sortOldest": "最舊優先",
+    "sortNameAsc": "名稱 A → Z",
+    "sortNameDesc": "名稱 Z → A",
+    "sortQtyAsc": "數量最少優先",
+    "sortQtyDesc": "數量最多優先",
     "empty": "尚無物品",
     "searchPlaceholder": "搜尋物品...",
     "loadError": "載入物品失敗",
@@ -106,7 +115,8 @@
       "Tools": "工具",
       "Other": "其他"
     },
-    "dayLeft": "天剩餘"
+    "dayLeft": "天剩餘",
+    "quantity": "數量"
   },
   "locations": {
     "title": "位置",
@@ -260,5 +270,11 @@
     "errorDesc": "無法處理此邀請，請重試。",
     "retry": "重試",
     "goHome": "回到首頁"
+  },
+  "datePicker": {
+    "selectDate": "選擇日期",
+    "today": "今天",
+    "selectYear": "選擇年份",
+    "cancel": "取消"
   }
 }

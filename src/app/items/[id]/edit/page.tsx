@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useToast } from "@/components/ui/Toast";
 import { ITEM_CATEGORIES } from "@/lib/constants";
 
@@ -304,8 +305,28 @@ export default function EditItemPage() {
 
         {hasExpiry && (
           <div className="flex flex-col gap-4">
-            <Input label={t("expiryDate")} type="date" {...register("expiryDate")} />
-            <Input label={t("bestBeforeDate")} type="date" {...register("bestBeforeDate")} />
+            <Controller
+              control={control}
+              name="expiryDate"
+              render={({ field }) => (
+                <DatePicker
+                  label={t("expiryDate")}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="bestBeforeDate"
+              render={({ field }) => (
+                <DatePicker
+                  label={t("bestBeforeDate")}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
           </div>
         )}
 
