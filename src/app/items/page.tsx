@@ -25,12 +25,11 @@ import { AnimatePresence, motion } from "framer-motion";
 const PAGE_SIZE = 6;
 type ViewMode = "grid" | "list";
 type SortOption =
-  | "newest"
-  | "oldest"
   | "name_asc"
   | "name_desc"
   | "qty_asc"
-  | "qty_desc";
+  | "qty_desc"
+  | "expiry_asc";
 type FilterOption = "" | "expired" | "expiring";
 
 export default function ItemsPage() {
@@ -58,7 +57,7 @@ export default function ItemsPage() {
   const [filter, setFilter] = useState<FilterOption>(
     (searchParams.get("filter") as FilterOption) ?? "",
   );
-  const [sort, setSort] = useState<SortOption>("newest");
+  const [sort, setSort] = useState<SortOption>("name_asc");
   const [sortOpen, setSortOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -97,7 +96,7 @@ export default function ItemsPage() {
         if (search) params.set("q", search);
         if (category) params.set("category", category);
         if (filter) params.set("filter", filter);
-        if (sort !== "newest") params.set("sort", sort);
+        if (sort !== "name_asc") params.set("sort", sort);
         params.set("page", String(pg));
         params.set("limit", String(PAGE_SIZE));
         const res = await fetch(`/api/items?${params}`);
@@ -157,12 +156,11 @@ export default function ItemsPage() {
   };
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-    { value: "newest", label: t("sortNewest") },
-    { value: "oldest", label: t("sortOldest") },
     { value: "name_asc", label: t("sortNameAsc") },
     { value: "name_desc", label: t("sortNameDesc") },
     { value: "qty_asc", label: t("sortQtyAsc") },
     { value: "qty_desc", label: t("sortQtyDesc") },
+    { value: "expiry_asc", label: t("sortExpiryAsc") },
   ];
 
   return (

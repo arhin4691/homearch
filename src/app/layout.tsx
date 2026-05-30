@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { LandscapeOverlay } from "@/components/LandscapeOverlay";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -68,6 +69,7 @@ export default async function RootLayout({
             <ThemeProvider>
               <AuthProvider>
                 <ToastProvider>
+                  <LandscapeOverlay />
                   {children}
                 </ToastProvider>
               </AuthProvider>

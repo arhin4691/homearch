@@ -223,6 +223,7 @@ export function ItemFormModal({
               label={t("image")}
               value={field.value}
               folder="/homearch/items"
+              cropToSquare
               onChange={(url, fileId) => {
                 field.onChange(url);
                 setValue("imageFileId", fileId);

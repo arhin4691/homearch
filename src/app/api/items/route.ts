@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     const locationId = url.searchParams.get("locationId");
     const favorite = url.searchParams.get("favorite");
     const filter = url.searchParams.get("filter"); // "expired" | "expiring"
-    const sort = url.searchParams.get("sort") ?? "newest";
+    const sort = url.searchParams.get("sort") ?? "name_asc";
     const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "6", 10)));
     const paginate = url.searchParams.get("paginate") !== "false";
@@ -68,14 +68,13 @@ export async function GET(req: NextRequest) {
     }
 
     const sortMap: Record<string, object> = {
-      newest: { createdAt: -1 },
-      oldest: { createdAt: 1 },
-      name_asc: { name: 1 },
-      name_desc: { name: -1 },
-      qty_asc: { quantity: 1 },
-      qty_desc: { quantity: -1 },
+      name_asc: { name: 1, _id: 1 },
+      name_desc: { name: -1, _id: 1 },
+      qty_asc: { quantity: 1, _id: 1 },
+      qty_desc: { quantity: -1, _id: 1 },
+      expiry_asc: { hasExpiry: -1, expiryDate: 1, _id: 1 },
     };
-    const sortQuery = sortMap[sort] ?? sortMap.newest;
+    const sortQuery = sortMap[sort] ?? sortMap.name_asc;
 
     const baseQuery = Item.find(query)
       .populate("locationId", "name")

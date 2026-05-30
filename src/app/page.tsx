@@ -110,13 +110,13 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="flex items-center justify-between mb-6"
+        className="flex items-center justify-between mb-2 mt-2"
       >
         <div>
-          <p className="text-s text-[var(--muted)] uppercase tracking-widest font-medium">
+          {/* <p className="text-s text-[var(--muted)] uppercase tracking-widest font-medium">
             {t("title")}
-          </p>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+          </p> */}
+          <h1 className="text-3xl font-bold text-[#7dc0ff] ">
             {t("hello")}, {user.name.split(" ")[0]}
           </h1>
         </div>
@@ -245,10 +245,10 @@ export default function DashboardPage() {
                 onClick={() => router.push("/items")}
               />
               <StatCard
-                icon={<MapPin className="h-5 w-5 text-purple-500" />}
+                icon={<MapPin className="h-5 w-5 text-[#7dc0ff]" />}
                 label={t("totalLocations")}
                 value={data.stats.totalLocations}
-                color="bg-purple-500/10"
+                color="bg-[#7dc0ff]/10"
                 onClick={() => router.push("/locations")}
               />
               <StatCard
@@ -384,7 +384,7 @@ function StatCard({
       className={`${color} rounded-2xl p-4 text-left w-full transition-opacity hover:opacity-80 ${onClick ? "cursor-pointer" : ""}`}
     >
       <div className="mb-2">{icon}</div>
-      <p className="text-2xl font-bold text-[var(--foreground)]">{value}</p>
+      <p className="text-3xl font-bold text-[var(--foreground)]">{value}</p>
       <p className="text-xs text-[var(--muted)] mt-0.5">{label}</p>
       {alert && value > 0 && (
         <div className="mt-1 w-1.5 h-1.5 rounded-full bg-red-500" />

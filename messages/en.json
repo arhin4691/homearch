@@ -13,7 +13,8 @@
     "search": "Search",
     "noResults": "No results found",
     "required": "This field is required",
-    "or": "or"
+    "or": "or",
+    "rotateDevice": "Please rotate your device to portrait mode"
   },
   "nav": {
     "home": "Home",
@@ -95,12 +96,11 @@
     "filterAll": "All",
     "filterExpired": "Expired",
     "filterExpiring": "Expiring Soon",
-    "sortNewest": "Newest First",
-    "sortOldest": "Oldest First",
     "sortNameAsc": "Name A → Z",
     "sortNameDesc": "Name Z → A",
     "sortQtyAsc": "Least Qty First",
     "sortQtyDesc": "Most Qty First",
+    "sortExpiryAsc": "Expiring Soonest",
     "empty": "No items yet",
     "searchPlaceholder": "Search items...",
     "loadError": "Failed to load items",

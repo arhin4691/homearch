@@ -12,9 +12,45 @@ interface ImageUploadProps {
   onClear?: () => void;
   folder?: string;
   label?: string;
+  cropToSquare?: boolean;
 }
 
-export function ImageUpload({ value, onChange, onClear, folder = "/homearch", label }: ImageUploadProps) {
+function centerCropSquare(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const size = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(
+        img,
+        (img.width - size) / 2,
+        (img.height - size) / 2,
+        size,
+        size,
+        0,
+        0,
+        size,
+        size,
+      );
+      URL.revokeObjectURL(objectUrl);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          else resolve(file);
+        },
+        "image/jpeg",
+        0.92,
+      );
+    };
+    img.src = objectUrl;
+  });
+}
+
+export function ImageUpload({ value, onChange, onClear, folder = "/homearch", label, cropToSquare }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
@@ -53,16 +89,20 @@ export function ImageUpload({ value, onChange, onClear, folder = "/homearch", la
     [folder, onChange, showToast]
   );
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) upload(file);
+    if (!file) return;
+    const toUpload = cropToSquare ? await centerCropSquare(file) : file;
+    upload(toUpload);
+    // reset so same file can be re-selected
+    e.target.value = "";
   };
 
   return (
     <div className="flex flex-col gap-2">
       {label && <label className="text-sm font-medium text-[var(--foreground)]">{label}</label>}
       {value ? (
-        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-[var(--card-border)]">
+        <div className={`relative w-full rounded-xl overflow-hidden border border-[var(--card-border)] ${cropToSquare ? "aspect-square" : "h-48"}`}>
           <Image src={value} alt="Uploaded" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
           {onClear && (
             <button
@@ -77,7 +117,7 @@ export function ImageUpload({ value, onChange, onClear, folder = "/homearch", la
       ) : (
         <div
           onClick={() => fileRef.current?.click()}
-          className="w-full h-48 rounded-xl border-2 border-dashed border-[var(--card-border)] hover:border-[#7dc0ff] bg-[var(--card)] flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors group"
+          className={`w-full rounded-xl border-2 border-dashed border-[var(--card-border)] hover:border-[#7dc0ff] bg-[var(--card)] flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors group ${cropToSquare ? "aspect-square" : "h-48"}`}
         >
           {loading ? (
             <Loader2 className="h-8 w-8 text-[#7dc0ff] animate-spin" />
@@ -98,7 +138,6 @@ export function ImageUpload({ value, onChange, onClear, folder = "/homearch", la
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleFile}
       />
