@@ -120,7 +120,9 @@
     "saveChanges": "Save Changes",
     "delete":"Delete",
     "cancel":"Cancel",
-    "deleteItem": "Delete Item"
+    "deleteItem": "Delete Item",
+    "itemDeleted": "Item deleted",
+    "deleteFailed": "Delete failed"
   },
   "locations": {
     "title": "Locations",

@@ -19,8 +19,8 @@ const schema = z.object({
   imageFileId: z.string().optional(),
   hashTags: z.array(z.string()).default([]),
   hasExpiry: z.boolean().default(true),
-  expiryDate: z.string().datetime().optional(),
-  bestBeforeDate: z.string().datetime().optional(),
+  expiryDate: z.string().datetime().nullish(),
+  bestBeforeDate: z.string().datetime().nullish(),
 });
 
 export async function GET(req: NextRequest) {
@@ -130,11 +130,12 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);
 
-    const { expiryDate, bestBeforeDate, ...rest } = parsed.data;
+    const { expiryDate, bestBeforeDate, locationId, ...rest } = parsed.data;
     const item = await Item.create({
       ...rest,
       familyId: user.familyId,
       uploaderId: user._id,
+      locationId: locationId || undefined,
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
       bestBeforeDate: bestBeforeDate ? new Date(bestBeforeDate) : undefined,
     });

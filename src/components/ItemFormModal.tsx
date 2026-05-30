@@ -173,7 +173,7 @@ export function ItemFormModal({
     try {
       const payload = {
         ...data,
-        locationId: data.locationId || null,
+        locationId: data.locationId || "",
         expiryDate:
           data.hasExpiry && data.expiryDate
             ? new Date(data.expiryDate).toISOString()

@@ -123,10 +123,10 @@ export default function ItemDetailPage() {
     setDeleting(true);
     try {
       await fetch(`/api/items/${id}`, { method: "DELETE" });
-      showToast("Item deleted", "success");
+      showToast(t("itemDeleted"), "success");
       router.replace("/items");
     } catch {
-      showToast("Delete failed", "error");
+      showToast(t("deleteFailed"), "error");
     } finally {
       setDeleting(false);
     }
