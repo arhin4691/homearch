@@ -44,7 +44,7 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.96 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`relative w-full ${sizeMap[size]} bg-[var(--background)] rounded-2xl shadow-2xl overflow-hidden`}
+            className={`relative w-full ${sizeMap[size]} bg-[var(--background)] rounded-3xl shadow-3xl overflow-hidden`}
           >
             {title && (
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--card-border)]">
