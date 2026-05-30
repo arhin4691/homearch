@@ -166,18 +166,20 @@ export default function LocationsPage() {
 
   return (
     <AppShell>
-      <div className="mb-5">
-        <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)] mb-3">
-          {t("title")}
-        </h1>
+      <h1 className="mt-2 text-4xl font-bold text-[var(--foreground)] mb-3">
+        {t("title")}
+      </h1>
+      <div
+        className="mb-4 backdrop-blur-sm bg-[var(--background)]/50 ps-3 pe-3 pt-3 pb-3 rounded-xl shadow-md shadow-[#7dc0ff]/20"
+        style={{ position: "sticky", top: 10, zIndex: 1 }}
+      >
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)]" />
-          <input
-            type="text"
+          <Input
+            placeholder={t("searchPlaceholder")}
+            leftIcon={<Search className="h-4 w-4" />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-            className="w-full pl-9 pr-4 py-2.5 bg-[var(--card)] border border-[var(--card-border)] rounded-xl text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#7dc0ff] focus:ring-2 focus:ring-[#7dc0ff]/20 transition-colors"
           />
         </div>
       </div>

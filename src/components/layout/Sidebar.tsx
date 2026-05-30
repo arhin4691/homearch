@@ -73,7 +73,7 @@ export function Sidebar() {
       {user?.familyId && (
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={() => router.push("/items/new")}
+          onClick={() => router.push("/items?new=1")}
           className="flex items-center justify-center gap-2 px-4 py-2.5 mb-4 rounded-xl bg-[#7dc0ff] text-white text-sm font-semibold hover:bg-[#5aabff] transition-colors shadow-md shadow-[#7dc0ff]/30"
         >
           <Plus className="h-4 w-4" />

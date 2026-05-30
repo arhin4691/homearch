@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
@@ -16,12 +16,14 @@ import {
   Minus,
   Plus,
   Package,
+  User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { CategoryBadge, ExpiryBadge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { ItemFormModal } from "@/components/ItemFormModal";
 import { useToast } from "@/components/ui/Toast";
 
 interface ItemDetail {
@@ -52,14 +54,24 @@ export default function ItemDetailPage() {
   const t = useTranslations("items");
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
   const { showToast } = useToast();
 
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+
+  // Auto-open edit modal when ?edit=1 is in the URL
+  useEffect(() => {
+    if (searchParams.get("edit") === "1") {
+      setShowEditModal(true);
+      router.replace(`/items/${id}`);
+    }
+  }, [searchParams, router, id]);
 
   const fetchItem = useCallback(async () => {
     try {
@@ -134,9 +146,12 @@ export default function ItemDetailPage() {
   return (
     <AppShell>
       {/* Back & actions */}
-      <div className="flex items-center justify-between mb-4">
+      <div
+        className="flex items-center justify-between mb-4 backdrop-blur-sm bg-[var(--background)]/50 p-2 rounded-xl "
+        style={{ position: "sticky", top: 10, zIndex: 1 }}
+      >
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push(`/items`)}
           className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)]"
         >
           <ArrowLeft className="h-4 w-4 text-[var(--foreground)]" />
@@ -151,7 +166,7 @@ export default function ItemDetailPage() {
             />
           </button>
           <button
-            onClick={() => router.push(`/items/${id}/edit`)}
+            onClick={() => setShowEditModal(true)}
             className="p-2 rounded-xl bg-[var(--card)] border border-[var(--card-border)]"
           >
             <Edit className="h-4 w-4 text-[var(--foreground)]" />
@@ -176,6 +191,7 @@ export default function ItemDetailPage() {
             src={item.imageUrl}
             alt={item.name}
             fill
+            sizes="(max-width: 768px) 100vw, 800px"
             className="object-cover"
           />
         ) : (
@@ -195,7 +211,10 @@ export default function ItemDetailPage() {
           {item.name}
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <CategoryBadge label={item.category} />
+          <CategoryBadge
+            label={t(`categories.${item.category}`)}
+            labelForClass={item.category}
+          />
           {days !== null && <ExpiryBadge daysUntilExpiry={days} />}
         </div>
       </motion.div>
@@ -208,7 +227,7 @@ export default function ItemDetailPage() {
             <Package className="h-4 w-4 text-[#7dc0ff]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs text-[var(--muted)]">Quantity</p>
+            <p className="text-xs text-[var(--muted)]">{t("quantity")}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -235,28 +254,28 @@ export default function ItemDetailPage() {
 
         {item.location && (
           <DetailRow
-            icon={<MapPin className="h-4 w-4 text-purple-500" />}
-            label="Location"
+            icon={<MapPin className="h-4 w-4 text-[#7dc0ff]" />}
+            label={t("location")}
             value={item.location.name}
           />
         )}
         {item.hasExpiry && item.expiryDate && (
           <DetailRow
-            icon={<Calendar className="h-4 w-4 text-red-500" />}
+            icon={<Calendar className="h-4 w-4 text-[#7dc0ff]" />}
             label={t("expires")}
             value={new Date(item.expiryDate).toLocaleDateString()}
           />
         )}
         {item.hasExpiry && item.bestBeforeDate && (
           <DetailRow
-            icon={<Clock className="h-4 w-4 text-orange-500" />}
+            icon={<Clock className="h-4 w-4 text-[#7dc0ff]" />}
             label={t("bestBefore")}
             value={new Date(item.bestBeforeDate).toLocaleDateString()}
           />
         )}
         {item.uploader && (
           <DetailRow
-            icon={<span className="text-base">👤</span>}
+            icon={<User className="h-4 w-4 text-[#7dc0ff]" />}
             label={t("addedBy")}
             value={item.uploader.name}
           />
@@ -288,7 +307,7 @@ export default function ItemDetailPage() {
       <Modal
         open={showDelete}
         onClose={() => setShowDelete(false)}
-        title="Delete Item"
+        title={t("deleteItem")}
         footer={
           <div className="flex gap-3">
             <Button
@@ -296,7 +315,7 @@ export default function ItemDetailPage() {
               onClick={() => setShowDelete(false)}
               fullWidth
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               variant="danger"
@@ -304,13 +323,20 @@ export default function ItemDetailPage() {
               loading={deleting}
               fullWidth
             >
-              Delete
+              {t("delete")}
             </Button>
           </div>
         }
       >
         <p className="text-[var(--foreground)]">{t("deleteConfirm")}</p>
       </Modal>
+
+      <ItemFormModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        itemId={id}
+        onSuccess={() => fetchItem()}
+      />
     </AppShell>
   );
 }

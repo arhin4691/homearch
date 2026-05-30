@@ -53,7 +53,7 @@ export default function LocationDetailPage() {
 
       {data.imageUrl && (
         <div className="relative w-full h-44 rounded-2xl overflow-hidden mb-5">
-          <Image src={data.imageUrl} alt={data.name} fill className="object-cover" />
+          <Image src={data.imageUrl} alt={data.name} fill sizes="(max-width: 768px) 100vw, 800px" className="object-cover" />
         </div>
       )}
 

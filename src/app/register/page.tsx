@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
+import Image from "next/image";
 
 const schema = z
   .object({
@@ -52,7 +53,12 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name, username: data.username, email: data.email, password: data.password }),
+        body: JSON.stringify({
+          name: data.name,
+          username: data.username,
+          email: data.email,
+          password: data.password,
+        }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -76,9 +82,17 @@ export default function RegisterPage() {
       >
         <div className="flex flex-col items-center gap-3 mb-8">
           <div className="w-14 h-14 rounded-2xl bg-[#7dc0ff] flex items-center justify-center shadow-lg shadow-[#7dc0ff]/30">
-            <Home className="h-7 w-7 text-white" />
+            <Image
+              src="/icons/icon.png"
+              alt="Homearch"
+              width={100}
+              height={100}
+              className="absolute"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">{t("registerTitle")}</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {t("registerTitle")}
+          </h1>
           <p className="text-sm text-[var(--muted)]">{t("registerSubtitle")}</p>
         </div>
 
@@ -123,14 +137,23 @@ export default function RegisterPage() {
             {...register("confirmPassword")}
           />
 
-          <Button type="submit" loading={loading} fullWidth size="lg" className="mt-2">
+          <Button
+            type="submit"
+            loading={loading}
+            fullWidth
+            size="lg"
+            className="mt-2"
+          >
             {t("register")}
           </Button>
         </form>
 
         <p className="text-center text-sm text-[var(--muted)] mt-6">
           {t("hasAccount")}{" "}
-          <Link href="/login" className="text-[#7dc0ff] font-medium hover:underline">
+          <Link
+            href="/login"
+            className="text-[#7dc0ff] font-medium hover:underline"
+          >
             {t("login")}
           </Link>
         </p>

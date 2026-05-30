@@ -116,7 +116,11 @@
       "Other": "Other"
     },
     "dayLeft": "day(s) left",
-    "quantity": "Quantity"
+    "quantity": "Quantity",
+    "saveChanges": "Save Changes",
+    "delete":"Delete",
+    "cancel":"Cancel",
+    "deleteItem": "Delete Item"
   },
   "locations": {
     "title": "Locations",
@@ -160,7 +164,9 @@
     "decline": "Decline",
     "markRead": "Mark as Read",
     "markAllRead": "Mark All as Read",
-    "joined": "You have joined the family!"
+    "joined": "You have joined the family!",
+    "itemUpdated": "Item updated",
+    "failedToUpdateItem": "Failed to update item"
   },
   "settings": {
     "title": "Settings",

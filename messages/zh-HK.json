@@ -116,7 +116,11 @@
       "Other": "其他"
     },
     "dayLeft": "天剩餘",
-    "quantity": "數量"
+    "quantity": "數量",
+    "saveChanges": "儲存變更",
+    "delete":"刪除",
+    "cancel":"取消",
+    "deleteItem": "刪除物品"
   },
   "locations": {
     "title": "位置",
@@ -160,7 +164,9 @@
     "decline": "拒絕",
     "markRead": "標記已讀",
     "markAllRead": "全部標記已讀",
-    "joined": "你已加入家庭！"
+    "joined": "你已加入家庭！",
+    "itemUpdated": "物品已更新",
+    "failedToUpdateItem": "更新物品失敗"
   },
   "settings": {
     "title": "設定",

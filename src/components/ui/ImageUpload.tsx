@@ -63,7 +63,7 @@ export function ImageUpload({ value, onChange, onClear, folder = "/homearch", la
       {label && <label className="text-sm font-medium text-[var(--foreground)]">{label}</label>}
       {value ? (
         <div className="relative w-full h-48 rounded-xl overflow-hidden border border-[var(--card-border)]">
-          <Image src={value} alt="Uploaded" fill className="object-cover" />
+          <Image src={value} alt="Uploaded" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
           {onClear && (
             <button
               type="button"

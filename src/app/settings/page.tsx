@@ -191,7 +191,7 @@ export default function SettingsPage() {
                 className="relative w-50 h-50 rounded-full overflow-hidden border-2 border-[#7dc0ff]/40 bg-[#7dc0ff]/10 flex items-center justify-center group cursor-pointer"
               >
                 {avatarUrl ? (
-                  <Image src={avatarUrl} alt={user?.name ?? ""} fill className="object-cover"/>
+                  <Image src={avatarUrl} alt={user?.name ?? ""} fill sizes="80px" className="object-cover"/>
                 ) : (
                   <span className="text-3xl font-bold text-[#7dc0ff]">
                     {user?.name?.[0]?.toUpperCase() ?? "?"}

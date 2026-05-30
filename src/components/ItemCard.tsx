@@ -58,6 +58,7 @@ export function ItemCard({
               src={item.imageUrl}
               alt={item.name}
               fill
+              sizes="64px"
               className="object-cover"
               style={{
                 filter:
@@ -136,6 +137,7 @@ export function ItemCard({
             src={item.imageUrl}
             alt={item.name}
             fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover"
             style={{
               filter:
@@ -176,7 +178,10 @@ export function ItemCard({
         </p>
         <div className="flex items-center justify-between mt-1.5">
           <div className="flex items-center gap-1.5">
-            <CategoryBadge label={item.category} />
+            <CategoryBadge
+              label={t(`categories.${item.category}`)}
+              labelForClass={item.category}
+            />
           </div>
           {item.quantity !== undefined && (
             <QuantityBadge quantity={item.quantity} size="lg" />

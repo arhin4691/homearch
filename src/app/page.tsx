@@ -117,7 +117,7 @@ export default function DashboardPage() {
             {t("title")}
           </p>
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
-            {t("hello")}, {user.name.split(" ")[0]} 👋
+            {t("hello")}, {user.name.split(" ")[0]}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -143,76 +143,81 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* ── Search ────────────────────────────────────────── */}
-      <motion.form
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.08 }}
-        onSubmit={handleSearch}
-        className="mb-6"
+      <motion.div
+        className="mb-4 backdrop-blur-sm bg-[var(--background)]/50 ps-3 pe-3 pt-3 rounded-xl shadow-md shadow-[#7dc0ff]/20 "
+        style={{ position: "sticky", top: 10, zIndex: 1 }}
       >
-        <Input
-          placeholder={t("searchPlaceholder")}
-          leftIcon={<Search className="h-4 w-4" />}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </motion.form>
-
-      {/* ── Quick actions ──────────────────────────────── */}
-      {user.familyId && (
-        <motion.div
+        {/* ── Search ────────────────────────────────────────── */}
+        <motion.form
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.14 }}
-          className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none"
+          transition={{ duration: 0.35, delay: 0.08 }}
+          onSubmit={handleSearch}
+          className="mb-6"
         >
-          <QuickAction
-            icon={<Plus className="h-4 w-4" />}
-            label={t("addItem")}
-            onClick={() => router.push("/items/new")}
-            primary
+          <Input
+            placeholder={t("searchPlaceholder")}
+            leftIcon={<Search className="h-4 w-4" />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <QuickAction
-            icon={<MapPin className="h-4 w-4" />}
-            label={t("addLocation")}
-            onClick={() => router.push("/locations")}
-          />
-          <QuickAction
-            icon={<ScanLine className="h-4 w-4" />}
-            label={t("scan")}
-            onClick={() => router.push("/items/new")}
-          />
-          <QuickAction
-            icon={<Star className="h-4 w-4" />}
-            label={t("favorites")}
-            onClick={() => router.push("/favorites")}
-          />
-        </motion.div>
-      )}
+        </motion.form>
 
-      {/* ── Family setup prompt ────────────────────────── */}
-      {!user.familyId && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#7dc0ff]/10 border border-[#7dc0ff]/30 rounded-2xl p-5 mb-6"
-        >
-          <p className="font-semibold text-[var(--foreground)] mb-1">
-            {t("setUpFamily")}
-          </p>
-          <p className="text-sm text-[var(--muted)] mb-3">
-            {t("createOrJoinFamily")}
-          </p>
-          <Button
-            onClick={() => router.push("/settings")}
-            size="sm"
-            variant="outline"
+        {/* ── Quick actions ──────────────────────────────── */}
+        {user.familyId && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.14 }}
+            className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none pb-3"
           >
-            {t("goToSettings")}
-          </Button>
-        </motion.div>
-      )}
+            <QuickAction
+              icon={<Plus className="h-4 w-4" />}
+              label={t("addItem")}
+              onClick={() => router.push("/items?new=1")}
+              primary
+            />
+            <QuickAction
+              icon={<MapPin className="h-4 w-4" />}
+              label={t("addLocation")}
+              onClick={() => router.push("/locations")}
+            />
+            <QuickAction
+              icon={<ScanLine className="h-4 w-4" />}
+              label={t("scan")}
+              onClick={() => router.push("/items?new=1")}
+            />
+            <QuickAction
+              icon={<Star className="h-4 w-4" />}
+              label={t("favorites")}
+              onClick={() => router.push("/favorites")}
+            />
+          </motion.div>
+        )}
+
+        {/* ── Family setup prompt ────────────────────────── */}
+        {!user.familyId && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#7dc0ff]/10 border border-[#7dc0ff]/30 rounded-2xl p-5 mb-6"
+          >
+            <p className="font-semibold text-[var(--foreground)] mb-1">
+              {t("setUpFamily")}
+            </p>
+            <p className="text-sm text-[var(--muted)] mb-3">
+              {t("createOrJoinFamily")}
+            </p>
+            <Button
+              onClick={() => router.push("/settings")}
+              size="sm"
+              variant="outline"
+            >
+              {t("goToSettings")}
+            </Button>
+          </motion.div>
+        )}
+      </motion.div>
 
       {data && (
         /* ── Desktop two-column layout ─────────────────── */
@@ -226,7 +231,10 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 flex flex-col gap-6">
             {/* Stat cards */}
             <motion.div
-              variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 },
+              }}
               className="grid grid-cols-2 gap-3"
             >
               <StatCard
@@ -264,7 +272,10 @@ export default function DashboardPage() {
             {/* Recent items */}
             {data.recentItems.length > 0 && (
               <motion.section
-                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0 },
+                }}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-[var(--foreground)]">
@@ -281,7 +292,10 @@ export default function DashboardPage() {
                   {data.recentItems.map((item, i) => (
                     <motion.div
                       key={item.id}
-                      variants={{ hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0 } }}
+                      variants={{
+                        hidden: { opacity: 0, x: -12 },
+                        show: { opacity: 1, x: 0 },
+                      }}
                       transition={{ delay: i * 0.05 }}
                     >
                       <ItemCard item={item} view="list" />
@@ -296,7 +310,10 @@ export default function DashboardPage() {
           <div className="mt-6 lg:mt-0 flex flex-col gap-6">
             {data.expiringList.length > 0 && (
               <motion.section
-                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0 },
+                }}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-[var(--foreground)]">
@@ -313,7 +330,10 @@ export default function DashboardPage() {
                   {data.expiringList.map((item, i) => (
                     <motion.div
                       key={item.id}
-                      variants={{ hidden: { opacity: 0, x: 12 }, show: { opacity: 1, x: 0 } }}
+                      variants={{
+                        hidden: { opacity: 0, x: 12 },
+                        show: { opacity: 1, x: 0 },
+                      }}
                       transition={{ delay: i * 0.05 }}
                     >
                       <ItemCard
@@ -332,7 +352,7 @@ export default function DashboardPage() {
       {/* Mobile FAB — hidden on desktop (sidebar has Add Item button) */}
       {user.familyId && (
         <button
-          onClick={() => router.push("/items/new")}
+          onClick={() => router.push("/items?new=1")}
           className="lg:hidden fixed bottom-28 right-5 w-16 h-16 bg-[#7dc0ff] hover:bg-[#5aabff] text-white rounded-4xl shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center transition-all active:scale-95 z-30"
         >
           <Plus className="h-6 w-6" />

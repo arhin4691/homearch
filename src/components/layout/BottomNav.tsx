@@ -81,8 +81,10 @@ export function BottomNav() {
                       <Image
                         src="/icons/icon.png"
                         alt="Homearch"
-                        fill
-                        className="object-cover scale-110"
+                        width={80}
+                        height={80}
+                        priority
+                        className="object-cover scale-110 w-full h-full"
                       />
                       {/* Ripple */}
                       <AnimatePresence>
