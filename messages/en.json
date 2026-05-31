@@ -122,7 +122,9 @@
     "cancel":"Cancel",
     "deleteItem": "Delete Item",
     "itemDeleted": "Item deleted",
-    "deleteFailed": "Delete failed"
+    "deleteFailed": "Delete failed",
+    "aiAnalyzing": "AI Analyzing...",
+    "aiBypassedToast": "AI analysis bypassed, please enter manually"
   },
   "locations": {
     "title": "Locations",

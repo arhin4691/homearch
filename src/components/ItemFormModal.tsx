@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, MapPin } from "lucide-react";
+import { Plus, MapPin, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal } from "@/components/ui/Modal";
@@ -58,6 +58,7 @@ export function ItemFormModal({
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [creatingLocation, setCreatingLocation] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -79,10 +80,34 @@ export function ItemFormModal({
   const hasExpiry = watch("hasExpiry");
   const tags = watch("hashTags");
 
+  const analyzeImage = async (url: string) => {
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const { name, category, hashTags } = json.data;
+        if (name) setValue("name", name);
+        if (category) setValue("category", category);
+        if (Array.isArray(hashTags) && hashTags.length > 0) setValue("hashTags", hashTags);
+      } else {
+        showToast(t("aiBypassedToast"), "info");
+      }
+    } catch {
+      showToast(t("aiBypassedToast"), "info");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // Load locations when modal opens
   useEffect(() => {
     if (!open) return;
-    fetch("/api/locations")
+    fetch("/api/locations?limit=9999")
       .then((r) => r.json())
       .then((d) => setLocations(d.data?.locations ?? []))
       .catch(() => {});
@@ -227,6 +252,7 @@ export function ItemFormModal({
               onChange={(url, fileId) => {
                 field.onChange(url);
                 setValue("imageFileId", fileId);
+                analyzeImage(url);
               }}
               onClear={() => {
                 field.onChange(undefined);
@@ -235,6 +261,21 @@ export function ItemFormModal({
             />
           )}
         />
+
+        {/* AI Loading Banner */}
+        <AnimatePresence>
+          {aiLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[#7dc0ff]/40 bg-[#7dc0ff]/10"
+            >
+              <Loader2 className="h-4 w-4 text-[#7dc0ff] animate-spin flex-shrink-0" />
+              <span className="text-sm font-medium text-[#7dc0ff]">{t("aiAnalyzing")}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <Input
           label={t("name")}
@@ -456,7 +497,7 @@ export function ItemFormModal({
           )}
         </div>
 
-        <Button type="submit" loading={saving} fullWidth size="lg">
+        <Button type="submit" loading={saving} disabled={saving || aiLoading} fullWidth size="lg">
           {isEdit ? t("saveChanges") : t("addItem")}
         </Button>
       </form>

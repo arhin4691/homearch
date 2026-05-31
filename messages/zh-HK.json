@@ -122,7 +122,9 @@
     "cancel":"取消",
     "deleteItem": "刪除物品",
     "itemDeleted": "物品已刪除",
-    "deleteFailed": "刪除失敗"
+    "deleteFailed": "刪除失敗",
+    "aiAnalyzing": "AI 正在辨識物品...",
+    "aiBypassedToast": "未能辨識圖片，請手動輸入"
   },
   "locations": {
     "title": "位置",
