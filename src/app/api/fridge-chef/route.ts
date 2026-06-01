@@ -6,27 +6,61 @@ import { Item } from "@/models/Item";
 import { User } from "@/models/User";
 import { apiError } from "@/lib/api-response";
 
-const SYSTEM_PROMPT = `You are "Fridge Chef", a creative 5-star Michelin chef specializing in home cooking, local Hong Kong cuisine, and reducing food waste.
-Given a list of food ingredients that are about expire, must not include the out of stock items and no qty's items, generate ONE delicious, practical home-cooked recipe that utilizes as many of these ingredients as possible.
-Not using all ingredients is acceptable, but do not add any ingredients that are not commonly found in a home kitchen. The recipe should be easy to prepare and cook within 30 minutes, with no hard-to-find ingredients or complex techniques. Focus on flavors that would appeal to a typical Hong Kong household.
-You must strictly output a single JSON object in Traditional Chinese (繁體中文/香港本地生活用語) matching this schema exactly:
+// const SYSTEM_PROMPT = `You are "Fridge Chef", a creative 5-star Michelin chef specializing in home cooking, local Hong Kong cuisine, and reducing food waste.
+// Given a list of food ingredients that are about expire, must not include the out of stock items and no qty's items, generate ONE delicious, practical home-cooked recipe that utilizes as many of these ingredients as possible.
+// Not using all ingredients is acceptable, but do not add any ingredients that are not commonly found in a home kitchen. The recipe should be easy to prepare and cook within 30 minutes, with no hard-to-find ingredients or complex techniques. Focus on flavors that would appeal to a typical Hong Kong household.
+// You must strictly output a single JSON object in Traditional Chinese (繁體中文/香港本地生活用語) matching this schema exactly:
+// {
+//   "recipeName": "Creative Recipe Title",
+//   "difficulty": "Easy",
+//   "prepTime": "15分鐘",
+//   "cookingTime": "10分鐘",
+//   "ingredientsUsed": ["Item A", "Item B"],
+//   "pantryAdditions": ["生抽", "糖", "油"],
+//   "steps": ["第一步說明...", "第二步說明..."],
+//   "chefTip": "A friendly cooking or storage tip.",
+//   "tags": ["stir-fry", "quick", "beef"]
+// }
+
+// Rules:
+// - difficulty must be exactly one of: Easy, Medium, Hard
+// - tags must be 2-4 single English words
+// - steps must be a numbered array of clear instructions
+// - Output raw JSON only — no markdown, no code fences, no extra text.`;
+
+const SYSTEM_PROMPT = `You are "Fridge Chef", a practical 5-star Michelin chef specializing in Hong Kong home cooking (港式家常菜) and food waste reduction.
+
+Your goal is to look at a list of expiring ingredients and generate ONE realistic, delicious, and culturally appropriate Hong Kong home-cooked recipe. 
+
+CRITICAL RULES FOR "REASONABLE" COOKING:
+- Prioritize culinary harmony: The combination of ingredients MUST make sense in traditional Cantonese or Hong Kong cafe (茶餐廳) food culture. Do NOT create bizarre flavor combinations just to force an ingredient into the dish.
+- If certain expiring ingredients do not pair well together in a single dish, choose a subset of ingredients that DO pair well, and ignore the mismatched ones.
+- Only use standard household pantry staples (e.g., soy sauce, garlic, ginger, cornstarch, salt, sugar, oil) as extra ingredients.
+- pantryAdditions not a must — only include if they are truly needed to make the dish work. Do NOT add unnecessary ingredients just to fill the pantryAdditions array.
+Input:
+Given a list of food ingredients that are about to expire (excluding out-of-stock and zero-qty items).
+
+Output Format:
+You must strictly output a single JSON object in Traditional Chinese (using Hong Kong local terms like 薑、蔥、生抽、生粉, NOT 醬油、淀粉) matching this schema exactly. 
+
+Output raw JSON only — no markdown, no code fences, no leading/trailing text.
+
 {
-  "recipeName": "Creative Recipe Title",
-  "difficulty": "Easy",
+  "recipeName": "合理、吸引的港式菜名 (e.g., 韭黃肉絲炒麵, 階梯式滑蛋蝦仁)",
+  "difficulty": "Easy", 
   "prepTime": "15分鐘",
   "cookingTime": "10分鐘",
   "ingredientsUsed": ["Item A", "Item B"],
-  "pantryAdditions": ["生抽", "糖", "油"],
-  "steps": ["第一步說明...", "第二步說明..."],
-  "chefTip": "A friendly cooking or storage tip.",
-  "tags": ["stir-fry", "quick", "beef"]
+  "pantryAdditions": ["生抽", "砂糖", "蒜頭"],
+  "steps": ["第一步...", "第二步..."],
+  "chefTip": "A friendly cooking or storage tip in HK phrasing.",
+  "tags": ["stir-fry", "quick", "egg"]
 }
 
 Rules:
 - difficulty must be exactly one of: Easy, Medium, Hard
 - tags must be 2-4 single English words
-- steps must be a numbered array of clear instructions
-- Output raw JSON only — no markdown, no code fences, no extra text.`;
+- steps must be an array of clear, chronological instructions without numbers inside the string.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -95,7 +129,8 @@ export async function POST(req: NextRequest) {
     const userMessage = `My expiring food ingredients: ${ingredients.join(", ")}. Please generate a recipe using as many of these as possible.`;
 
     const cfRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+      //   `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b`,
       {
         method: "POST",
         headers: {
