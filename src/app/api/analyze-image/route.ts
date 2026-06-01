@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
 The JSON must have exactly these three fields:
 - "name": string — product name in Traditional Chinese. if you cannot read the chinese or japanese, must return traditional chinese in what you see in the image
-- "category": string — MUST be exactly one of: Food, Medicine, Electronics, Household, Clothing, Beauty, Documents, Tools, Other
+- "category": string — MUST be exactly one of: Food, Drinks, Medicine, Electronics, Household, Clothing, Beauty, Documents, Tools, Other
 - "hashTags": string[] — exactly 2-3 single English words describing the item
 
 Example of the ONLY acceptable output JSON format:

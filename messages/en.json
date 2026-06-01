@@ -20,7 +20,7 @@
     "home": "Home",
     "items": "Items",
     "locations": "Locations",
-    "favorites": "Favorites",
+    "fridgeChef": "AI Chef",
     "settings": "Settings",
     "addItem": "Add Item"
   },
@@ -106,6 +106,7 @@
     "loadError": "Failed to load items",
     "categories": {
       "Food": "Food",
+      "Drinks": "Drinks",
       "Medicine": "Medicine",
       "Electronics": "Electronics",
       "Household": "Household",
@@ -124,7 +125,8 @@
     "itemDeleted": "Item deleted",
     "deleteFailed": "Delete failed",
     "aiAnalyzing": "AI Analyzing...",
-    "aiBypassedToast": "AI analysis bypassed, please enter manually"
+    "aiBypassedToast": "AI analysis bypassed, please enter manually",
+    "filterFavorites": "Favorites"
   },
   "locations": {
     "title": "Locations",
@@ -286,5 +288,40 @@
     "today": "Today",
     "selectYear": "Select Year",
     "cancel": "Cancel"
+  },
+  "fridgeChef": {
+    "title": "AI Fridge Chef",
+    "subtitle": "AI recipe from expiring food",
+    "generate": "Generate Recipe",
+    "generating": "Generating recipe...",
+    "noFood": "No expiring food items found. Add some food items first!",
+    "regenerate": "Try Again",
+    "ingredientsUsed": "Ingredients Used",
+    "pantryAdditions": "Also Needed",
+    "steps": "Steps",
+    "chefTip": "Chef's Tip",
+    "difficulty": "Difficulty",
+    "prepTime": "Prep Time",
+    "cookingTime": "Cooking Time",
+    "tags": "Tags",
+    "save": "Save Recipe",
+    "close": "Close",
+    "confirm": "Confirm & Cook",
+    "confirmTitle": "Mark as cooked?",
+    "confirmDesc": "Ingredients will be deducted from your inventory and the recipe will be marked as completed.",
+    "confirmYes": "Yes, let's cook!",
+    "confirmNo": "No, go back",
+    "saved": "Recipe saved!",
+    "cooked": "Done! Ingredients deducted.",
+    "generateFailed": "Failed to generate recipe",
+    "saveFailed": "Failed to save recipe",
+    "empty": "No saved recipes yet",
+    "searchPlaceholder": "Search recipes...",
+    "used": "Cooked",
+    "deleteConfirm": "Delete this recipe?",
+    "deleted": "Recipe deleted",
+    "deleteFailed": "Delete failed",
+    "listTitle": "Saved Recipes",
+    "isUseNearExpiry": "Prioritize using near-expiry items"
   }
 }

@@ -1,5 +1,6 @@
 export const ITEM_CATEGORIES = [
   "Food",
+  "Drinks",
   "Medicine",
   "Electronics",
   "Household",

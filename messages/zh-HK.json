@@ -20,7 +20,7 @@
     "home": "主頁",
     "items": "物品",
     "locations": "位置",
-    "favorites": "收藏",
+    "fridgeChef": "AI 庫存大廚",
     "settings": "設定",
     "addItem": "新增物品"
   },
@@ -106,6 +106,7 @@
     "loadError": "載入物品失敗",
     "categories": {
       "Food": "食物",
+      "Drinks": "飲品",
       "Medicine": "藥品",
       "Electronics": "電子產品",
       "Household": "家居用品",
@@ -124,7 +125,8 @@
     "itemDeleted": "物品已刪除",
     "deleteFailed": "刪除失敗",
     "aiAnalyzing": "AI 正在辨識物品...",
-    "aiBypassedToast": "未能辨識圖片，請手動輸入"
+    "aiBypassedToast": "未能辨識圖片，請手動輸入",
+    "filterFavorites": "我的收藏"
   },
   "locations": {
     "title": "位置",
@@ -286,5 +288,40 @@
     "today": "今天",
     "selectYear": "選擇年份",
     "cancel": "取消"
+  },
+  "fridgeChef": {
+    "title": "AI 庫存大廚",
+    "subtitle": "AI 分析即將過期食材生成食譜",
+    "generate": "生成食譜",
+    "generating": "食譜生成中...",
+    "noFood": "沒有找到即將過期的食材，請先新增食物物品！",
+    "regenerate": "重新生成",
+    "ingredientsUsed": "使用食材",
+    "pantryAdditions": "額外需要",
+    "steps": "烹飪步驟",
+    "chefTip": "大廚提示",
+    "difficulty": "難度",
+    "prepTime": "準備時間",
+    "cookingTime": "烹飪時間",
+    "tags": "標簽",
+    "save": "儲存食譜",
+    "close": "關閉",
+    "confirm": "確認烹飪",
+    "confirmTitle": "確定已烹飪？",
+    "confirmDesc": "食材數量將會從庫存扣減，食譜將標記為已完成。",
+    "confirmYes": "好，開始烹！",
+    "confirmNo": "不，返回",
+    "saved": "食譜已儲存！",
+    "cooked": "完成！食材已扣減。",
+    "generateFailed": "生成食譜失敗",
+    "saveFailed": "儲存食譜失敗",
+    "empty": "尚無儲存的食譜",
+    "searchPlaceholder": "搜尋食譜...",
+    "used": "已烹飪",
+    "deleteConfirm": "確定要刪除此食譜？",
+    "deleted": "食譜已刪除",
+    "deleteFailed": "刪除失敗",
+    "listTitle": "已儲存食譜",
+    "isUseNearExpiry": "優先使用即將過期的食材"
   }
 }

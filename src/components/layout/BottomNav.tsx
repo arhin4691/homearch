@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, MapPin, Heart, Settings } from "lucide-react";
+import { Package, MapPin, ChefHat, Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
 import { clsx } from "clsx";
@@ -13,7 +13,7 @@ const tabs = [
   { href: "/items", icon: Package, key: "items" },
   { href: "/locations", icon: MapPin, key: "locations" },
   { href: "/", icon: null, key: "home", isCenter: true },
-  { href: "/favorites", icon: Heart, key: "favorites" },
+  { href: "/recipes", icon: ChefHat, key: "fridgeChef" },
   { href: "/settings", icon: Settings, key: "settings" },
 ];
 
@@ -134,7 +134,7 @@ export function BottomNav() {
                           | "items"
                           | "locations"
                           | "home"
-                          | "favorites"
+                          | "fridgeChef"
                           | "settings",
                       )}
                     </span>

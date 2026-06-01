@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 
 const categoryColors: Record<string, string> = {
   Food: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  Drinks: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
   Medicine: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   Electronics:
     "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",

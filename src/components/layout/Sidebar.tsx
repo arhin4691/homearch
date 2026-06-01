@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Package, MapPin, Heart, Settings, Plus } from "lucide-react";
+import { Home, Package, MapPin, ChefHat, Settings, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -14,7 +14,7 @@ const navItems = [
   { href: "/", icon: Home, key: "home", exact: true },
   { href: "/items", icon: Package, key: "items" },
   { href: "/locations", icon: MapPin, key: "locations" },
-  { href: "/favorites", icon: Heart, key: "favorites" },
+  { href: "/recipes", icon: ChefHat, key: "fridgeChef" },
   { href: "/settings", icon: Settings, key: "settings" },
 ];
 
@@ -57,7 +57,7 @@ export function Sidebar() {
               )}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
-              <span>{t(item.key as "home" | "items" | "locations" | "favorites" | "settings")}</span>
+              <span>{t(item.key as "home" | "items" | "locations" | "fridgeChef" | "settings")}</span>
               {isActive && (
                 <motion.div
                   layoutId="sidebar-active-indicator"

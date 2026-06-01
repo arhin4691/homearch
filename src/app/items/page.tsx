@@ -57,6 +57,7 @@ export default function ItemsPage() {
   const [filter, setFilter] = useState<FilterOption>(
     (searchParams.get("filter") as FilterOption) ?? "",
   );
+  const [showFavorites, setShowFavorites] = useState(false);
   const [sort, setSort] = useState<SortOption>("name_asc");
   const [sortOpen, setSortOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -96,6 +97,7 @@ export default function ItemsPage() {
         if (search) params.set("q", search);
         if (category) params.set("category", category);
         if (filter) params.set("filter", filter);
+        if (showFavorites) params.set("favorite", "true");
         if (sort !== "name_asc") params.set("sort", sort);
         params.set("page", String(pg));
         params.set("limit", String(PAGE_SIZE));
@@ -114,7 +116,7 @@ export default function ItemsPage() {
         setLoadingMore(false);
       }
     },
-    [user, search, category, filter, sort, showToast, t],
+    [user, search, category, filter, showFavorites, sort, showToast, t],
   );
 
   // Reset and refetch when filters change
@@ -310,6 +312,17 @@ export default function ItemsPage() {
           )}
         >
           {t("filterExpiring")}
+        </button>
+        <button
+          onClick={() => setShowFavorites((f) => !f)}
+          className={clsx(
+            "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+            showFavorites
+              ? "bg-red-500 text-white"
+              : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)]",
+          )}
+        >
+          {t("filterFavorites")}
         </button>
         {ITEM_CATEGORIES.map((cat) => (
           <button
