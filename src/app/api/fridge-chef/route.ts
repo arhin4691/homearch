@@ -57,15 +57,34 @@ export async function POST(req: NextRequest) {
         { hasExpiry: true, bestBeforeDate: { $gte: now } },
       ];
     }
-    const items = await Item.find(query)
-      .sort(
-        useNearExpiry
-          ? { expiryDate: 1, bestBeforeDate: 1 }
-          : { createdAt: -1 },
-      )
-      .limit(Math.floor(Math.random() * 4) + 2) // 2-5
-      .select("name")
-      .lean();
+
+    const randomLimit = Math.floor(Math.random() * 4) + 2;
+
+    let items;
+    if (useNearExpiry) {
+      // Traditional route: Sorted by expiry, limited by MongoDB
+      items = await Item.find(query)
+        .sort({ expiryDate: 1, bestBeforeDate: 1 })
+        .limit(randomLimit)
+        .select("name")
+        .lean();
+    } else {
+      // Random route: Fetch matching items, shuffle them in memory
+      const allMatching = await Item.find(query).select("name").lean();
+
+      items = allMatching
+        .sort(() => Math.random() - 0.5) // Shuffle randomly
+        .slice(0, randomLimit); // Get your 2-5 items
+    }
+    // const items = await Item.find(query)
+    //   .sort(
+    //     useNearExpiry
+    //       ? { expiryDate: 1, bestBeforeDate: 1 }
+    //       : { createdAt: -1 },
+    //   )
+    //   .limit(Math.floor(Math.random() * 4) + 2) // 2-5
+    //   .select("name")
+    //   .lean();
 
     const ingredients = items.map((i) => i.name);
 
