@@ -90,6 +90,7 @@
     "bestBefore": "Best before",
     "expired": "Expired",
     "expiresInDays": "Expires in {days} days",
+    "expiresToday": "Expires today",
     "noExpiry": "No expiry date",
     "gridView": "Grid View",
     "listView": "List View",
@@ -126,7 +127,21 @@
     "deleteFailed": "Delete failed",
     "aiAnalyzing": "AI Analyzing...",
     "aiBypassedToast": "AI analysis bypassed, please enter manually",
-    "filterFavorites": "Favorites"
+    "filterFavorites": "Favorites",
+    "howToAdd": "How would you like to add this item?",
+    "scanBarcode": "Scan Barcode",
+    "uploadPhoto": "Take / Upload Photo",
+    "lookingUp": "Looking up barcode...",
+    "foundInLibrary": "Product found in your library!",
+    "foundOnline": "Product found online!",
+    "restockedExisting": "{name} already in your fridge — quantity +1",
+    "notFoundAnywhere": "Barcode not recognized. Please take a photo of the product packaging.",
+    "takeProductPhoto": "Take Product Photo",
+    "skipToManual": "Skip / Enter Manually",
+    "scanAnother": "Scan Another Barcode",
+    "barcodeScanned": "Barcode: {barcode}",
+    "orUploadBarcode": "Or upload a barcode image",
+    "scannerError": "Scanner error — try uploading an image instead"
   },
   "locations": {
     "title": "Locations",
@@ -169,7 +184,10 @@
     "accept": "Accept",
     "decline": "Decline",
     "markRead": "Mark as Read",
+    "markUnread": "Mark as Unread",
     "markAllRead": "Mark All as Read",
+    "clearAll": "Clear All",
+    "cleared": "All notifications cleared",
     "joined": "You have joined the family!",
     "itemUpdated": "Item updated",
     "failedToUpdateItem": "Failed to update item"
@@ -323,5 +341,21 @@
     "deleteFailed": "Delete failed",
     "listTitle": "Saved Recipes",
     "isUseNearExpiry": "Prioritize using near-expiry items"
+  },
+  "camera": {
+    "permissionDenied": "Camera permission denied. Please enable it in your device settings.",
+    "noCamera": "No camera found on this device.",
+    "cameraError": "An error occurred while accessing the camera.",
+    "uploadBarcodeImage": "Upload barcode image",
+    "startingCamera": "Starting camera…",
+    "cameraUnavailable": "Camera unavailable — please upload an image containing a barcode.",
+    "noBarcodeInImage": "Could not detect a barcode in this image. Try a clearer, closer, well-lit photo.",
+    "tipFlat": "Hold the barcode as flat as possible",
+    "tipLighting": "Scan in good lighting and avoid shadows",
+    "tipTilt": "Tilt the phone slightly to avoid glare",
+    "tapToFocus": "Blurry up close? Tap the camera preview to refocus",
+    "manualEntryLabel": "Can't scan it? Enter the barcode manually",
+    "manualEntryPlaceholder": "Barcode number",
+    "manualEntrySubmit": "Use code"
   }
 }

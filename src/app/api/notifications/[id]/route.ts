@@ -25,6 +25,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       notif.status = "ACCEPTED";
     } else if (action === "decline" && notif.type === "FAMILY_INVITE") {
       notif.status = "DECLINED";
+    } else if (action === "unread") {
+      notif.status = "PENDING";
     } else {
       notif.status = "READ";
     }

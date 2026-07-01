@@ -52,6 +52,12 @@ export function DatePicker({
 
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  // Always render 6 rows (42 cells) so the picker height stays constant
+  // whether the month spans 4, 5, or 6 weeks.
+  const cells = Array.from({ length: 42 }, (_, i) => {
+    const day = i - firstDayOfWeek + 1;
+    return day >= 1 && day <= daysInMonth ? day : null;
+  });
 
   const prevMonth = () => {
     if (viewMonth === 0) {
@@ -215,13 +221,12 @@ export function DatePicker({
                     ))}
                   </div>
 
-                  {/* Day grid */}
+                  {/* Day grid - fixed 6 rows so height never changes */}
                   <div className="grid grid-cols-7 gap-y-1">
-                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                      <div key={`blank-${i}`} />
-                    ))}
-                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(
-                      (day) => {
+                    {cells.map((day, i) => {
+                      if (day === null) {
+                        return <div key={`blank-${i}`} />;
+                      }
                         const isSelected =
                           selected &&
                           selected.getFullYear() === viewYear &&
@@ -249,8 +254,7 @@ export function DatePicker({
                             {day}
                           </button>
                         );
-                      }
-                    )}
+                    })}
                   </div>
 
                   {/* Today shortcut */}

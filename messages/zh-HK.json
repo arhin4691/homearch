@@ -90,6 +90,7 @@
     "bestBefore": "最佳食用期",
     "expired": "已過期",
     "expiresInDays": "{days} 天後到期",
+    "expiresToday": "今天到期",
     "noExpiry": "無到期日",
     "gridView": "方格顯示",
     "listView": "列表顯示",
@@ -126,7 +127,21 @@
     "deleteFailed": "刪除失敗",
     "aiAnalyzing": "AI 正在辨識物品...",
     "aiBypassedToast": "未能辨識圖片，請手動輸入",
-    "filterFavorites": "我的收藏"
+    "filterFavorites": "我的收藏",
+    "howToAdd": "您想如何新增此物品？",
+    "scanBarcode": "掃描條碼",
+    "uploadPhoto": "拍照 / 上傳相片",
+    "lookingUp": "正在查詢條碼...",
+    "foundInLibrary": "已在您的物品庫找到！",
+    "foundOnline": "已在網上找到產品！",
+    "restockedExisting": "{name} 已在您的雪櫃中，數量 +1",
+    "notFoundAnywhere": "未能識別條碼，請拍攝產品包裝照片。",
+    "takeProductPhoto": "拍攝產品相片",
+    "skipToManual": "跳過 / 手動輸入",
+    "scanAnother": "掃描另一個條碼",
+    "barcodeScanned": "條碼：{barcode}",
+    "orUploadBarcode": "或上傳條碼圖片",
+    "scannerError": "掃描器錯誤，請嘗試上傳圖片"
   },
   "locations": {
     "title": "位置",
@@ -169,7 +184,10 @@
     "accept": "接受",
     "decline": "拒絕",
     "markRead": "標記已讀",
+    "markUnread": "標記未讀",
     "markAllRead": "全部標記已讀",
+    "clearAll": "清除全部",
+    "cleared": "已清除所有通知",
     "joined": "你已加入家庭！",
     "itemUpdated": "物品已更新",
     "failedToUpdateItem": "更新物品失敗"
@@ -323,5 +341,21 @@
     "deleteFailed": "刪除失敗",
     "listTitle": "已儲存食譜",
     "isUseNearExpiry": "優先使用即將過期的食材"
+  },
+  "camera":{
+    "permissionDenied": "相機權限被拒絕。請在裝置設定中啟用。",
+    "noCamera": "此裝置未找到相機。",
+    "cameraError": "存取相機時發生錯誤。",
+    "uploadBarcodeImage": "上傳條碼圖片",
+    "startingCamera": "正在啟動相機…",
+    "cameraUnavailable": "相機無法使用 — 請上傳包含條碼的圖片。",
+    "noBarcodeInImage": "未能在此圖片中偵測到條碼，請嘗試更清晰、更近距離、光線充足的相片。",
+    "tipFlat": "請將條碼盡量掃平",
+    "tipLighting": "請在光線充足的地方掃描，避免陰影",
+    "tipTilt": "嘗試稍微傾斜手機避開反光",
+    "tapToFocus": "近距離睇唔清？輕觸相機畫面重新對焦",
+    "manualEntryLabel": "掃描唔到？可手動輸入條碼",
+    "manualEntryPlaceholder": "條碼號碼",
+    "manualEntrySubmit": "使用此條碼"
   }
 }

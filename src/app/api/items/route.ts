@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Item } from "@/models/Item";
 import { User } from "@/models/User";
 import { Notification } from "@/models/Notification";
+import { ProductDictionary } from "@/models/ProductDictionary";
 import "@/models/Location";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { z } from "zod";
@@ -21,6 +22,7 @@ const schema = z.object({
   hasExpiry: z.boolean().default(true),
   expiryDate: z.string().datetime().nullish(),
   bestBeforeDate: z.string().datetime().nullish(),
+  barcode: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -37,6 +39,7 @@ export async function GET(req: NextRequest) {
     const category = url.searchParams.get("category");
     const locationId = url.searchParams.get("locationId");
     const favorite = url.searchParams.get("favorite");
+    const barcode = url.searchParams.get("barcode");
     const filter = url.searchParams.get("filter"); // "expired" | "expiring"
     const sort = url.searchParams.get("sort") ?? "name_asc";
     const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest) {
     if (category) query.category = category;
     if (locationId) query.locationId = locationId;
     if (favorite === "true") query.favoritedBy = user._id;
+    if (barcode) query.barcode = barcode;
 
     if (filter === "expired") {
       query.hasExpiry = true;
@@ -97,6 +101,7 @@ export async function GET(req: NextRequest) {
       expiryDate: item.expiryDate,
       bestBeforeDate: item.bestBeforeDate,
       hashTags: item.hashTags,
+      barcode: (item as any).barcode ?? null,
       isFavorite: (item.favoritedBy as { toString(): string }[]).some(
         (id) => id.toString() === (user._id as { toString(): string }).toString()
       ),
@@ -129,12 +134,13 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);
 
-    const { expiryDate, bestBeforeDate, locationId, ...rest } = parsed.data;
+    const { expiryDate, bestBeforeDate, locationId, barcode, ...rest } = parsed.data;
     const item = await Item.create({
       ...rest,
       familyId: user.familyId,
       uploaderId: user._id,
       locationId: locationId || undefined,
+      barcode: barcode || undefined,
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
       bestBeforeDate: bestBeforeDate ? new Date(bestBeforeDate) : undefined,
     });
@@ -156,6 +162,25 @@ export async function POST(req: NextRequest) {
         metadata: { itemId: item._id.toString() },
       }))
     );
+
+    // Asynchronously upsert to ProductDictionary if a barcode was provided
+    if (barcode) {
+      ProductDictionary.updateOne(
+        { barcode },
+        {
+          $setOnInsert: {
+            barcode,
+            name: parsed.data.name,
+            category: parsed.data.category,
+            hashTags: parsed.data.hashTags ?? [],
+            imageUrl: parsed.data.imageUrl,
+            imageFileId: parsed.data.imageFileId,
+            uploaderId: user._id,
+          },
+        },
+        { upsert: true },
+      ).catch((err) => console.error("ProductDictionary upsert failed:", err));
+    }
 
     return apiSuccess({ id: item._id.toString(), name: item.name }, 201);
   } catch (e) {

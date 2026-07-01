@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { applyCloseFocus } from "@/lib/cameraFocus";
 
 interface QrScannerProps {
   onScan: (code: string) => void;
@@ -39,6 +40,7 @@ export function QrScanner({ onScan, onError }: QrScannerProps) {
           if (active) {
             runningRef.current = true;
             setStarted(true);
+            applyCloseFocus(scanner);
           }
         })
         .catch((err: any) => {
@@ -60,7 +62,10 @@ export function QrScanner({ onScan, onError }: QrScannerProps) {
     <div className="flex flex-col items-center gap-3">
       <div
         id={containerId.current}
-        className="w-full rounded-xl overflow-hidden"
+        onClick={() => scannerRef.current && applyCloseFocus(scannerRef.current)}
+        role={started ? "button" : undefined}
+        title={started ? "Tap to refocus" : undefined}
+        className="w-full rounded-xl overflow-hidden cursor-pointer"
         style={{ minHeight: 260 }}
       />
       {!started && (

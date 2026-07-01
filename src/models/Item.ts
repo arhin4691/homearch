@@ -15,6 +15,7 @@ export interface IItem extends Document {
   imageUrl?: string;
   imageFileId?: string;
   hashTags: string[];
+  barcode?: string;
   favoritedBy: Types.ObjectId[];
   hasExpiry: boolean;
   expiryDate?: Date;
@@ -34,6 +35,7 @@ const ItemSchema = new Schema<IItem>(
     imageUrl: { type: String },
     imageFileId: { type: String },
     hashTags: [{ type: String, lowercase: true, trim: true }],
+    barcode: { type: String, trim: true },
     favoritedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
     hasExpiry: { type: Boolean, default: true },
     expiryDate: { type: Date },
@@ -43,5 +45,6 @@ const ItemSchema = new Schema<IItem>(
 );
 
 ItemSchema.index({ familyId: 1, name: "text", hashTags: "text" });
+ItemSchema.index({ familyId: 1, barcode: 1 });
 
 export const Item = mongoose.models.Item ?? mongoose.model<IItem>("Item", ItemSchema);
