@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Upload, Lightbulb } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { applyCloseFocus } from "@/lib/cameraFocus";
+import { applyCloseFocus, startCloseFocusLoop } from "@/lib/cameraFocus";
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -52,130 +52,258 @@ async function resizeImageFile(file: File, maxDim: number): Promise<File> {
 }
 
 export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
-  const containerId = useRef(`barcode-cam-${Math.random().toString(36).slice(2)}`);
-  const fileContainerId = useRef(`barcode-file-${Math.random().toString(36).slice(2)}`);
+  const containerId = useRef(
+    `barcode-cam-${Math.random().toString(36).slice(2)}`,
+  );
+  const fileContainerId = useRef(
+    `barcode-file-${Math.random().toString(36).slice(2)}`,
+  );
   const scannerRef = useRef<any>(null);
   const doneRef = useRef(false);
   /** True only after scanner.start() has fully resolved — guards cleanup stop() call */
   const startedRef = useRef(false);
+  /** Stops the recurring focus-nudge interval started once the camera is running */
+  const stopFocusLoopRef = useRef<(() => void) | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [started, setStarted] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
   const t = useTranslations("camera");
 
+  // useEffect(() => {
+  //   let active = true;
+
+  //   import("html5-qrcode").then(async ({ Html5Qrcode, Html5QrcodeSupportedFormats }) => {
+  //     if (!active) return;
+
+  //     const formats = buildFormats(Html5QrcodeSupportedFormats);
+
+  //     const scanner = new Html5Qrcode(containerId.current, {
+  //       formatsToSupport: formats,
+  //       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+  //       verbose: false,
+  //     });
+  //     scannerRef.current = scanner;
+
+  //     const onSuccess = (code: string) => {
+  //       if (doneRef.current) return;
+  //       doneRef.current = true;
+  //       startedRef.current = false;
+  //       stopFocusLoopRef.current?.();
+  //       stopFocusLoopRef.current = null;
+  //       scanner
+  //         .stop()
+  //         .catch(() => {})
+  //         .finally(() => {
+  //           if (active) onScan(code);
+  //         });
+  //     };
+  //     const onFrameError = () => {
+  //       /* per-frame non-fatal errors — ignore */
+  //     };
+  //     const scanConfig = { fps: 10, qrbox: { width: 300, height: 150 } };
+
+  //     // Build a prioritized list of camera configs to try. Requesting a
+  //     // hard-coded `facingMode: "environment"` fails with
+  //     // "NotFoundError: Requested device not found" on many laptops/desktops
+  //     // (and some mobile browsers) that don't expose an "environment"
+  //     // camera, even though a usable camera exists. Enumerating real devices
+  //     // via getCameras() first (which internally just asks for any camera)
+  //     // is far more reliable, falling back to facingMode constraints only
+  //     // if enumeration itself isn't available.
+  //     const candidates: Array<string | MediaTrackConstraints> = [];
+  //     try {
+  //       const cameras = await Html5Qrcode.getCameras();
+  //       if (active && cameras && cameras.length > 0) {
+  //         const back = cameras.find((c) => /back|rear|environment/i.test(c.label));
+  //         if (back) candidates.push(back.id);
+  //         const rest = cameras.filter((c) => c.id !== back?.id).map((c) => c.id);
+  //         // On phones the last enumerated camera is often the main/back one.
+  //         candidates.push(...rest.reverse());
+  //       }
+  //     } catch {
+  //       // Permission not granted yet or enumeration unsupported — fall
+  //       // through to facingMode-based attempts below.
+  //     }
+  //     candidates.push({ facingMode: "environment" });
+  //     candidates.push({ facingMode: "user" });
+
+  //     let lastErr: unknown = null;
+  //     for (const candidate of candidates) {
+  //       if (!active) return;
+  //       try {
+  //         await scanner.start(candidate, scanConfig, onSuccess, onFrameError);
+  //         lastErr = null;
+  //         if (active) {
+  //           startedRef.current = true;
+  //           setStarted(true);
+  //           // One-shot nudge isn't enough on iPhones when a barcode is held
+  //           // very close to the lens — keep re-applying focus constraints
+  //           // periodically to force continuous AF to keep re-searching.
+  //           stopFocusLoopRef.current = startCloseFocusLoop(scanner);
+  //         }
+  //         break;
+  //       } catch (err) {
+  //         lastErr = err;
+  //       }
+  //     }
+
+  //     if (!active) return;
+
+  //     if (lastErr !== null) {
+  //       const msg = (lastErr as any)?.message ?? String(lastErr);
+  //       setCameraError(msg);
+  //       onError?.(msg);
+  //     }
+  //   });
+
+  //   return () => {
+  //     active = false;
+  //     stopFocusLoopRef.current?.();
+  //     stopFocusLoopRef.current = null;
+  //     // Only call stop() if the scanner actually started successfully
+  //     if (!doneRef.current && scannerRef.current && startedRef.current) {
+  //       doneRef.current = true;
+  //       startedRef.current = false;
+  //       scannerRef.current.stop().catch(() => {});
+  //     }
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
+
   useEffect(() => {
     let active = true;
 
-    import("html5-qrcode").then(async ({ Html5Qrcode, Html5QrcodeSupportedFormats }) => {
-      if (!active) return;
-
-      const formats = buildFormats(Html5QrcodeSupportedFormats);
-
-      const scanner = new Html5Qrcode(containerId.current, {
-        formatsToSupport: formats,
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        verbose: false,
-      });
-      scannerRef.current = scanner;
-
-      const onSuccess = (code: string) => {
-        if (doneRef.current) return;
-        doneRef.current = true;
-        startedRef.current = false;
-        scanner
-          .stop()
-          .catch(() => {})
-          .finally(() => {
-            if (active) onScan(code);
-          });
-      };
-      const onFrameError = () => {
-        /* per-frame non-fatal errors — ignore */
-      };
-      const scanConfig = { fps: 10, qrbox: { width: 300, height: 150 } };
-
-      // Build a prioritized list of camera configs to try. Requesting a
-      // hard-coded `facingMode: "environment"` fails with
-      // "NotFoundError: Requested device not found" on many laptops/desktops
-      // (and some mobile browsers) that don't expose an "environment"
-      // camera, even though a usable camera exists. Enumerating real devices
-      // via getCameras() first (which internally just asks for any camera)
-      // is far more reliable, falling back to facingMode constraints only
-      // if enumeration itself isn't available.
-      const candidates: Array<string | MediaTrackConstraints> = [];
-      try {
-        const cameras = await Html5Qrcode.getCameras();
-        if (active && cameras && cameras.length > 0) {
-          const back = cameras.find((c) => /back|rear|environment/i.test(c.label));
-          if (back) candidates.push(back.id);
-          const rest = cameras.filter((c) => c.id !== back?.id).map((c) => c.id);
-          // On phones the last enumerated camera is often the main/back one.
-          candidates.push(...rest.reverse());
-        }
-      } catch {
-        // Permission not granted yet or enumeration unsupported — fall
-        // through to facingMode-based attempts below.
-      }
-      candidates.push({ facingMode: "environment" });
-      candidates.push({ facingMode: "user" });
-
-      let lastErr: unknown = null;
-      for (const candidate of candidates) {
+    import("html5-qrcode").then(
+      async ({ Html5Qrcode, Html5QrcodeSupportedFormats }) => {
         if (!active) return;
+
+        const formats = buildFormats(Html5QrcodeSupportedFormats);
+
+        const scanner = new Html5Qrcode(containerId.current, {
+          formatsToSupport: formats,
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          verbose: false,
+        });
+        scannerRef.current = scanner;
+
+        const onSuccess = (code: string) => {
+          if (doneRef.current) return;
+          doneRef.current = true;
+          startedRef.current = false;
+          stopFocusLoopRef.current?.();
+          stopFocusLoopRef.current = null;
+          scanner
+            .stop()
+            .catch(() => {})
+            .finally(() => {
+              if (active) onScan(code);
+            });
+        };
+
+        const onFrameError = () => {
+        };
+
+        const scanConfig = { fps: 10, qrbox: { width: 300, height: 150 } };
+        const candidates: Array<string | MediaTrackConstraints> = [];
+
         try {
-          await scanner.start(candidate, scanConfig, onSuccess, onFrameError);
-          lastErr = null;
-          break;
-        } catch (err) {
-          lastErr = err;
-        }
-      }
+          const cameras = await Html5Qrcode.getCameras();
 
-      // if (!active) return;
+          if (active && cameras && cameras.length > 0) {
+            const validCameras = cameras.filter(
+              (c) => c.label && c.label.trim().length > 0,
+            );
 
-      // if (lastErr === null) {
-      //   startedRef.current = true;
-      //   setStarted(true);
-      //   applyCloseFocus(scanner);
-      // } else {
-      //   const msg = (lastErr as any)?.message ?? String(lastErr);
-      //   setCameraError(msg);
-      //   onError?.(msg);
-      // }
-      if (!active) return;
+            if (validCameras.length > 0) {
+              const backCameras = validCameras.filter((c) =>
+                /back|rear|environment/i.test(c.label),
+              );
 
-      if (lastErr === null) {
-        startedRef.current = true;
-        setStarted(true);
-        setTimeout(() => {
-          if (active) {
-            applyCloseFocus(scanner);
+              const ultraWideRegex =
+                /ultra[\s_-]?wide|0\.5x|back\s+1|macro|dual|triple/i;
+
+              const ultraWide = backCameras.filter((c) =>
+                ultraWideRegex.test(c.label),
+              );
+              const normalBack = backCameras.filter(
+                (c) => !ultraWideRegex.test(c.label),
+              );
+
+              ultraWide.forEach((c) => candidates.push(c.id));
+              normalBack.forEach((c) => candidates.push(c.id));
+            }
           }
-        }, 200);
+        } catch (err) {
+          console.warn(
+            "無法列舉鏡頭或被權限拒絕，將啟用原生存取限制機制:",
+            err,
+          );
+        }
 
-      } else {
-        const msg = (lastErr as any)?.message ?? String(lastErr);
-        setCameraError(msg);
-        onError?.(msg);
-      }
-    });
+        if (candidates.length === 0) {
+          candidates.push({ facingMode: "environment" });
+        } else {
+          candidates.push({ facingMode: "environment" });
+        }
+
+        candidates.push({ facingMode: "user" });
+
+        console.log("最終鏡頭嘗試順序 (Candidates):", candidates);
+
+        let lastErr: unknown = null;
+
+        for (const candidate of candidates) {
+          if (!active) return;
+          try {
+            await scanner.start(candidate, scanConfig, onSuccess, onFrameError);
+            lastErr = null;
+
+            if (active) {
+              startedRef.current = true;
+              setStarted(true);
+
+              setTimeout(() => {
+                if (active && typeof stopFocusLoopRef.current !== "function") {
+                  stopFocusLoopRef.current = startCloseFocusLoop(scanner);
+                  console.log("近距離對焦優化循環已成功啟動");
+                }
+              }, 250);
+            }
+            break; 
+          } catch (err) {
+            lastErr = err;
+            console.warn(
+              "此鏡頭 Candidate 啟動失敗，嘗試下一個:",
+              candidate,
+              err,
+            );
+          }
+        }
+
+        if (!active) return;
+
+        if (lastErr !== null) {
+          const msg = (lastErr as any)?.message ?? String(lastErr);
+          setCameraError(msg);
+          onError?.(msg);
+        }
+      },
+    );
 
     return () => {
       active = false;
-      // Only call stop() if the scanner actually started successfully
-      if (!doneRef.current && scannerRef.current && startedRef.current) {
-        doneRef.current = true;
-        startedRef.current = false;
-        scannerRef.current.stop().catch(() => {});
+      if (stopFocusLoopRef.current) {
+        stopFocusLoopRef.current();
+        stopFocusLoopRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileUpload = async (file: File) => {
     try {
-      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } =
+        await import("html5-qrcode");
       const scanner = new Html5Qrcode(fileContainerId.current, {
         formatsToSupport: buildFormats(Html5QrcodeSupportedFormats),
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
@@ -214,14 +342,18 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
           devices whose autofocus gets stuck after zooming in close. */}
       <div
         id={containerId.current}
-        onClick={() => scannerRef.current && applyCloseFocus(scannerRef.current)}
+        onClick={() =>
+          scannerRef.current && applyCloseFocus(scannerRef.current)
+        }
         role={started ? "button" : undefined}
         title={started ? t("tapToFocus") : undefined}
         className="w-full rounded-xl overflow-hidden bg-[var(--card)] cursor-pointer"
         style={{ minHeight: 240 }}
       />
       {!started && !cameraError && (
-        <p className="text-sm text-[var(--muted)] text-center">{t("startingCamera")}</p>
+        <p className="text-sm text-[var(--muted)] text-center">
+          {t("startingCamera")}
+        </p>
       )}
       {cameraError && (
         <p className="text-sm text-red-400 text-center px-2">
@@ -289,7 +421,9 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
           if (code) onScan(code);
         }}
       >
-        <label className="text-xs text-[var(--muted)]">{t("manualEntryLabel")}</label>
+        <label className="text-xs text-[var(--muted)]">
+          {t("manualEntryLabel")}
+        </label>
         <div className="flex gap-2">
           <input
             type="text"

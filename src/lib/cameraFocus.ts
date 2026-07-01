@@ -36,3 +36,25 @@ export async function applyCloseFocus(scanner: FocusCapableScanner): Promise<voi
     /* focus constraints unsupported on this device/browser — ignore */
   }
 }
+
+/** Starts a recurring focus nudge: re-applies `applyCloseFocus` on an
+ *  interval for as long as the scanner is running.
+ *
+ *  A single call right after `start()` isn't enough on some devices
+ *  (notably iPhones) — `focusMode: "continuous"` is accepted once, but the
+ *  actual autofocus search doesn't reliably re-trigger just because the
+ *  subject moved closer afterwards. Re-issuing `applyConstraints` (even
+ *  with the exact same value) tends to kick iOS into re-running its AF
+ *  search, which is what lets a barcode held very close to the lens
+ *  eventually snap into focus. Returns a stop function — always call it
+ *  when the scanner stops/unmounts to clear the interval. */
+export function startCloseFocusLoop(
+  scanner: FocusCapableScanner,
+  intervalMs = 1200,
+): () => void {
+  void applyCloseFocus(scanner);
+  const id = setInterval(() => {
+    void applyCloseFocus(scanner);
+  }, intervalMs);
+  return () => clearInterval(id);
+}
