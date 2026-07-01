@@ -132,12 +132,28 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
         }
       }
 
+      // if (!active) return;
+
+      // if (lastErr === null) {
+      //   startedRef.current = true;
+      //   setStarted(true);
+      //   applyCloseFocus(scanner);
+      // } else {
+      //   const msg = (lastErr as any)?.message ?? String(lastErr);
+      //   setCameraError(msg);
+      //   onError?.(msg);
+      // }
       if (!active) return;
 
       if (lastErr === null) {
         startedRef.current = true;
         setStarted(true);
-        applyCloseFocus(scanner);
+        setTimeout(() => {
+          if (active) {
+            applyCloseFocus(scanner);
+          }
+        }, 200);
+
       } else {
         const msg = (lastErr as any)?.message ?? String(lastErr);
         setCameraError(msg);
