@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, MapPin, Loader2, ScanLine, ImagePlus, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, MapPin, Loader2, ScanLine, ImagePlus, CheckCircle2, AlertTriangle, Grid } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal } from "@/components/ui/Modal";
@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/Select";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useToast } from "@/components/ui/Toast";
+import { VoiceInputButton } from "@/components/VoiceInputButton";
 import { ITEM_CATEGORIES } from "@/lib/constants";
 
 const schema = z.object({
@@ -381,27 +382,35 @@ export function ItemFormModal({
       {!isEdit && addStep === "choose" && (
         <div className="flex flex-col gap-4 py-2">
           <p className="text-sm text-[var(--muted)] text-center">{t("howToAdd")}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setAddStep("barcode-scan")}
-              className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-[var(--card-border)] hover:border-[#7dc0ff] bg-[var(--card)] transition-all hover:bg-[#7dc0ff]/5 group"
+              className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 border-[var(--card-border)] hover:border-[#7dc0ff] bg-[var(--card)] transition-all hover:bg-[#7dc0ff]/5 group"
             >
               <div className="p-3 rounded-xl bg-[#7dc0ff]/10 group-hover:bg-[#7dc0ff]/20 transition-colors">
-                <ScanLine className="h-7 w-7 text-[#7dc0ff]" />
+                <ScanLine className="h-6 w-6 text-[#7dc0ff]" />
               </div>
-              <span className="text-sm font-semibold text-[var(--foreground)]">{t("scanBarcode")}</span>
+              <span className="text-sm font-semibold text-[var(--foreground)] text-center">{t("scanBarcode")}</span>
             </button>
             <button
               type="button"
               onClick={() => setAddStep("form")}
-              className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-[var(--card-border)] hover:border-[#7dc0ff] bg-[var(--card)] transition-all hover:bg-[#7dc0ff]/5 group"
+              className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 border-[var(--card-border)] hover:border-[#7dc0ff] bg-[var(--card)] transition-all hover:bg-[#7dc0ff]/5 group"
             >
               <div className="p-3 rounded-xl bg-[#7dc0ff]/10 group-hover:bg-[#7dc0ff]/20 transition-colors">
-                <ImagePlus className="h-7 w-7 text-[#7dc0ff]" />
+                <ImagePlus className="h-6 w-6 text-[#7dc0ff]" />
               </div>
-              <span className="text-sm font-semibold text-[var(--foreground)]">{t("uploadPhoto")}</span>
+              <span className="text-sm font-semibold text-[var(--foreground)] text-center">{t("uploadPhoto")}</span>
             </button>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <VoiceInputButton
+              onApplied={() => {
+                onSuccess?.(undefined);
+                onClose();
+              }}
+            />
           </div>
         </div>
       )}
