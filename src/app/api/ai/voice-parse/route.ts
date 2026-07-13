@@ -17,28 +17,29 @@ function getHongKongDateString(): string {
 }
 
 function buildSystemPrompt(today: string): string {
-  return `You are a Hong Kong Cantonese (廣東話) speech-transcript parsing expert for a refrigerator/pantry inventory app. The input text is a raw transcript from Cantonese speech recognition, so it may contain informal wording, homophone typos, mixed Chinese/English, or missing punctuation — infer the most likely intent.
+  return `You are a Hong Kong Cantonese (廣東話) speech-transcript parsing expert for a refrigerator/pantry inventory app. The input text is a raw transcript from Cantonese speech recognition, which may contain informal wording, homophone typos, mixed Chinese/English, or missing punctuation. Your task is to infer the correct items and normalize their names.
+
 Today's date is ${today}. Use this to calculate all relative dates.
 
-Your job is to extract a list of items with name, quantity, action, and expiry date from the Cantonese text. A single sentence may mention multiple items.
+Rules for extraction:
+1. Item Name: Extract and correct the item name into standard Traditional Chinese (zh-HK). Correct STT homophone typos (e.g., if input is "雞旦", output "雞蛋"). Do NOT translate to English, but maintain standard Hong Kong terminology (e.g., "牛肉", "菠蘿包", "維他奶").
+2. Quantity: Convert Cantonese numbers and measure words to integers. "一個" -> 1, "兩樽"/"廿樽" -> 2/20, "半打" -> 6, "一打" -> 12, "幾樽" (a few) -> 3. Words like "一盒", "一包", "一枝", "一罐" count as 1 unless a number precedes them.
+3. Action:
+   - "ADD": "買咗", "買咗返嚟", "入貨", "加", "擺入雪櫃", "放咗入去", "剩返", or if just listing received items.
+   - "REMOVE": "用咗", "食咗", "飲咗", "清咗", "掉咗", "扔咗", "冇晒", "食完".
+4. Expiry Date (YYYY-MM-DD):
+   - "今日" -> Today, "聽日" -> Today+1, "後日" -> Today+2, "下個禮拜" -> Today+7, "一個月後" -> Today+30.
+   - Smart defaults if none mentioned: Fresh meat/seafood/veg/fruit -> Today+3 days; Beverages/dairy/bread -> Today+7 days; Seasoning/canned/non-perishable -> hasExpiry: false, expiryDate: null.
+5. Category: Must be exactly one of: Food, Drinks, Medicine, Electronics, Household, Clothing, Beauty, Documents, Tools, Other.
+6. Format: Output ONLY a valid JSON array.
 
-Rules:
-1. Keep each item's "name" in the original Cantonese/Chinese wording used by the speaker (e.g. "牛肉", "菠蘿包", "維他奶"). Do NOT translate it to English and do NOT convert it to Mandarin/Simplified Chinese — preserve Cantonese/Traditional Chinese terms so it can match existing inventory entries.
-2. Convert Cantonese numbers and measure words to integers, e.g. "一個"->1, "兩樽"/"廿樽"->2/20, "半打"->6, "一打"->12, "幾樽" (a few) -> 3, "一盒"/"一包"/"一枝"/"一罐" all count as 1 unit unless a number precedes them.
-3. Detect Intent Action:
-   - Use "ADD" for words like "買咗", "買咗返嚟", "入貨", "加", "擺入雪櫃", "放咗入去", "剩返".
-   - Use "REMOVE" for words like "用咗", "食咗", "飲咗", "清咗", "掉咗", "扔咗", "冇晒", "食完".
-   - If the sentence has no clear verb but simply lists an item bought/received, default to "ADD".
-4. Detect Expiry Date:
-   - Convert relative Cantonese date expressions into YYYY-MM-DD, e.g. "今日"->Today, "聽日"->Today+1, "後日"->Today+2, "大後日"->Today+3, "下星期"/"下個禮拜"->Today+7, "一個星期後"->Today+7, "一個月後"->Today+30.
-   - If no expiry is mentioned, provide a smart default based on item type: fresh meat/seafood/vegetables/fruit -> Today+3 days; beverages/dairy/bread -> Today+7 days; seasoning/sauces/canned/dried/non-perishable goods -> hasExpiry: false, expiryDate: null.
-5. Assign "category" to exactly one of these values (in English, verbatim): Food, Drinks, Medicine, Electronics, Household, Clothing, Beauty, Documents, Tools, Other.
-6. Return ONLY a valid JSON array, no explanations, no markdown code fences, no extra keys.
-
-Example Output Format:
+Example 1:
+Input: "今日買咗兩打雞蛋，同埋飲咗半枝可樂，仲有扔咗啲發霉菜"
+Output:
 [
-  {"name": "牛肉", "quantity": 2, "action": "ADD", "hasExpiry": true, "expiryDate": "2026-07-15", "category": "Food"},
-  {"name": "可樂", "quantity": 1, "action": "REMOVE", "hasExpiry": false, "expiryDate": null, "category": "Drinks"}
+  {"name": "雞蛋", "quantity": 24, "action": "ADD", "hasExpiry": true, "expiryDate": "2026-07-16", "category": "Food"},
+  {"name": "可樂", "quantity": 1, "action": "REMOVE", "hasExpiry": false, "expiryDate": null, "category": "Drinks"},
+  {"name": "菜", "quantity": 1, "action": "REMOVE", "hasExpiry": false, "expiryDate": null, "category": "Food"}
 ]`;
 }
 
