@@ -8,7 +8,6 @@ import {
   List,
   Search,
   SlidersHorizontal,
-  ChevronDown,
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -17,6 +16,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ItemCard } from "@/components/ItemCard";
 import { ItemFormModal } from "@/components/ItemFormModal";
 import { Input } from "@/components/ui/Input";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { useToast } from "@/components/ui/Toast";
 import { ITEM_CATEGORIES } from "@/lib/constants";
 import { clsx } from "clsx";
@@ -29,8 +29,52 @@ type SortOption =
   | "name_desc"
   | "qty_asc"
   | "qty_desc"
-  | "expiry_asc";
+  | "expiry_asc"
+  | "created_desc"
+  | "updated_desc";
 type FilterOption = "" | "expired" | "expiring";
+
+const FILTER_STATE_KEY = "items-filter-state";
+const RETURN_FROM_ITEM_KEY = "items-return-from-detail";
+
+interface ItemsFilterState {
+  search: string;
+  category: string;
+  filter: FilterOption;
+  showFavorites: boolean;
+  sort: SortOption;
+}
+
+function readFilterState(): ItemsFilterState | null {
+  if (
+    typeof window === "undefined" ||
+    window.sessionStorage.getItem(RETURN_FROM_ITEM_KEY) !== "1"
+  ) {
+    return null;
+  }
+
+  const params = new URLSearchParams(
+    window.sessionStorage.getItem(FILTER_STATE_KEY) ?? "",
+  );
+  const filter = params.get("filter");
+  const sort = params.get("sort");
+
+  return {
+    search: params.get("q") ?? "",
+    category: params.get("category") ?? "",
+    filter: filter === "expired" || filter === "expiring" ? filter : "",
+    showFavorites: params.get("favorite") === "true",
+    sort:
+      sort === "name_desc" ||
+      sort === "qty_asc" ||
+      sort === "qty_desc" ||
+      sort === "expiry_asc" ||
+      sort === "created_desc" ||
+      sort === "updated_desc"
+        ? sort
+        : "name_asc",
+  };
+}
 
 export default function ItemsPage() {
   const t = useTranslations("items");
@@ -38,6 +82,7 @@ export default function ItemsPage() {
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const { showToast } = useToast();
+  const [restoredFilters] = useState(readFilterState);
 
   const [items, setItems] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -50,19 +95,40 @@ export default function ItemsPage() {
     }
     return "grid";
   });
-  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [search, setSearch] = useState(
+    restoredFilters?.search ?? searchParams.get("q") ?? "",
+  );
   const [category, setCategory] = useState<string>(
-    searchParams.get("category") ?? "",
+    restoredFilters?.category ?? searchParams.get("category") ?? "",
   );
   const [filter, setFilter] = useState<FilterOption>(
-    (searchParams.get("filter") as FilterOption) ?? "",
+    restoredFilters?.filter ??
+      ((searchParams.get("filter") as FilterOption) ?? ""),
   );
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [sort, setSort] = useState<SortOption>("name_asc");
-  const [sortOpen, setSortOpen] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(
+    restoredFilters?.showFavorites ?? false,
+  );
+  const [sort, setSort] = useState<SortOption>(
+    restoredFilters?.sort ?? "name_asc",
+  );
   const [showAddModal, setShowAddModal] = useState(false);
-  const sortRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (restoredFilters) {
+      window.sessionStorage.removeItem(RETURN_FROM_ITEM_KEY);
+    }
+  }, [restoredFilters]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (category) params.set("category", category);
+    if (filter) params.set("filter", filter);
+    if (showFavorites) params.set("favorite", "true");
+    if (sort !== "name_asc") params.set("sort", sort);
+    window.sessionStorage.setItem(FILTER_STATE_KEY, params.toString());
+  }, [search, category, filter, showFavorites, sort]);
 
   // Auto-open modal when ?new=1 is in the URL
   useEffect(() => {
@@ -75,17 +141,6 @@ export default function ItemsPage() {
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
-
-  // Close sort dropdown on outside click
-  useEffect(() => {
-    const handleOutside = (e: MouseEvent) => {
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-        setSortOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
 
   const fetchItems = useCallback(
     async (pg: number, replace: boolean) => {
@@ -163,6 +218,8 @@ export default function ItemsPage() {
     { value: "qty_asc", label: t("sortQtyAsc") },
     { value: "qty_desc", label: t("sortQtyDesc") },
     { value: "expiry_asc", label: t("sortExpiryAsc") },
+    { value: "created_desc", label: t("sortDateAdded") },
+    { value: "updated_desc", label: t("sortRecentlyUpdated") },
   ];
 
   return (
@@ -201,51 +258,14 @@ export default function ItemsPage() {
           />
         </div>
         {/* Sort dropdown */}
-        <div className="relative flex-shrink-0" ref={sortRef}>
-          <button
-            onClick={() => setSortOpen((o) => !o)}
-            className="flex items-center gap-1.5 px-3 h-10 rounded-xl bg-[var(--card)] border border-[var(--card-border)] text-[var(--foreground)] text-xs font-medium"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">
-              {SORT_OPTIONS.find((o) => o.value === sort)?.label}
-            </span>
-            <ChevronDown
-              className={clsx(
-                "h-3 w-3 transition-transform",
-                sortOpen && "rotate-180",
-              )}
-            />
-          </button>
-          <AnimatePresence>
-            {sortOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="absolute right-0 top-full mt-1 z-30 bg-[var(--card)] border border-[var(--card-border)] rounded-xl shadow-xl overflow-hidden min-w-[160px]"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setSort(opt.value);
-                      setSortOpen(false);
-                    }}
-                    className={clsx(
-                      "w-full px-4 py-2.5 text-sm text-left transition-colors",
-                      sort === opt.value
-                        ? "text-[#7dc0ff] font-semibold bg-[#7dc0ff]/8"
-                        : "text-[var(--foreground)] hover:bg-[var(--background)]",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <Dropdown
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={setSort}
+          leadingIcon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+          labelClassName="hidden sm:inline"
+          className="flex-shrink-0"
+        />
       </div>
 
       {/* Active filter banner */}
@@ -366,6 +386,9 @@ export default function ItemsPage() {
                 key={item.id}
                 item={item}
                 onFavoriteToggle={toggleFavorite}
+                onItemClick={() =>
+                  window.sessionStorage.setItem(RETURN_FROM_ITEM_KEY, "1")
+                }
                 view={view}
               />
             ))}

@@ -5,12 +5,20 @@ import { connectDB } from "@/lib/mongodb";
 import { ApiKey } from "@/models/ApiKey";
 import { User } from "@/models/User";
 import { Family } from "@/models/Family";
-import { generateApiKey } from "@/lib/codes";
+import { generateApiKey, parseApiKey } from "@/lib/codes";
 import { hashPassword } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/api-response";
+import { API_KEY_PERMISSIONS } from "@/lib/api-key-permissions";
 import { z } from "zod";
 
-const schema = z.object({ name: z.string().min(1).max(60) });
+const schema = z.object({
+  name: z.string().trim().min(1).max(60),
+  permissions: z
+    .array(z.enum(API_KEY_PERMISSIONS))
+    .min(1)
+    .max(API_KEY_PERMISSIONS.length)
+    .refine((permissions) => new Set(permissions).size === permissions.length),
+});
 
 export async function GET() {
   try {
@@ -35,6 +43,7 @@ export async function GET() {
       keys.map((k) => ({
         id: (k._id as { toString(): string }).toString(),
         name: k.name,
+        permissions: k.permissions ?? [],
         createdAt: k.createdAt,
       }))
     );
@@ -63,19 +72,29 @@ export async function POST(req: NextRequest) {
     }
 
     const rawKey = generateApiKey();
+    const parsedKey = parseApiKey(rawKey);
+    if (!parsedKey) throw new Error("Generated API key had an invalid format");
     const apiKeyHash = await hashPassword(rawKey);
 
-    await ApiKey.create({
+    const created = await ApiKey.create({
+      keyId: parsedKey.keyId,
       familyId: user.familyId,
+      createdBy: user._id,
       apiKeyHash,
       name: parsed.data.name,
+      permissions: parsed.data.permissions,
     });
 
-    // Return plaintext key ONCE ??not stored
-    return apiSuccess({ key: rawKey }, 201);
+    return apiSuccess(
+      {
+        id: created._id.toString(),
+        key: rawKey,
+        permissions: parsed.data.permissions,
+      },
+      201,
+    );
   } catch (e) {
     console.error(e);
     return apiError("Internal server error", 500);
   }
 }
-

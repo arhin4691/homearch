@@ -77,6 +77,8 @@ export async function GET(req: NextRequest) {
       qty_asc: { quantity: 1, _id: 1 },
       qty_desc: { quantity: -1, _id: 1 },
       expiry_asc: { hasExpiry: -1, expiryDate: 1, _id: 1 },
+      created_desc: { createdAt: -1, _id: 1 },
+      updated_desc: { updatedAt: -1, _id: 1 },
     };
     const sortQuery = sortMap[sort] ?? sortMap.name_asc;
 
@@ -188,4 +190,3 @@ export async function POST(req: NextRequest) {
     return apiError("Internal server error", 500);
   }
 }
-

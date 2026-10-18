@@ -73,6 +73,7 @@ export async function GET() {
     // Check expiry alerts: notify family for items expiring soon (deduped per 24 h)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     for (const item of expiringList) {
+      if ((item.quantity ?? 1) <= 0) continue;
       const itemId = (item._id as { toString(): string }).toString();
       const alreadyNotified = await Notification.findOne({
         type: "EXPIRY_ALERT",
@@ -102,4 +103,3 @@ export async function GET() {
     return apiError("Internal server error", 500);
   }
 }
-

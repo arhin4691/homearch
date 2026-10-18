@@ -24,6 +24,7 @@ interface ItemCardProps {
     location?: { name: string } | null;
   };
   onFavoriteToggle?: (id: string) => void;
+  onItemClick?: (id: string) => void;
   view?: "grid" | "list";
 }
 
@@ -36,17 +37,22 @@ function getDaysUntilExpiry(expiryDate?: string | Date | null): number | null {
 export function ItemCard({
   item,
   onFavoriteToggle,
+  onItemClick,
   view = "grid",
 }: ItemCardProps) {
   const router = useRouter();
   const days = item.hasExpiry ? getDaysUntilExpiry(item.expiryDate) : null;
   const t = useTranslations("items");
+  const openItem = () => {
+    onItemClick?.(item.id);
+    router.push(`/items/${item.id}`);
+  };
 
   if (view === "list") {
     return (
       <motion.div
         whileTap={{ scale: 0.98 }}
-        onClick={() => router.push(`/items/${item.id}`)}
+        onClick={openItem}
         className="flex items-center gap-3 p-3 bg-[var(--card)] border border-[var(--card-border)] rounded-2xl cursor-pointer hover:border-[#7dc0ff]/50 transition-all"
         style={{
           opacity: item.quantity === 0 ? "0.5" : "",
@@ -125,7 +131,7 @@ export function ItemCard({
   return (
     <motion.div
       whileTap={{ scale: 0.96 }}
-      onClick={() => router.push(`/items/${item.id}`)}
+      onClick={openItem}
       className="bg-[var(--card)] border border-[var(--card-border)] rounded-2xl overflow-hidden cursor-pointer hover:border-[#7dc0ff]/50 hover:shadow-md hover:shadow-[#7dc0ff]/10 transition-all"
       style={{
         opacity: item.quantity === 0 ? "0.5" : "",

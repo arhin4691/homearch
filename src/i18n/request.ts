@@ -1,13 +1,15 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies } from "next/headers";
 
-export const locales = ["en", "zh-HK"] as const;
+export const locales = ["en", "zh-HK", "ja", "zh-CN"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "en";
 
-const messageMap: Record<string, () => Promise<any>> = {
+const messageMap = {
   en: () => import("../../messages/en.json"),
   "zh-HK": () => import("../../messages/zh-HK.json"),
+  ja: () => import("../../messages/ja.json"),
+  "zh-CN": () => import("../../messages/zh-CN.json"),
 };
 
 export default getRequestConfig(async () => {

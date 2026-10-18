@@ -17,30 +17,49 @@ function getHongKongDateString(): string {
 }
 
 function buildSystemPrompt(today: string): string {
-  return `You are a Hong Kong Cantonese (廣東話) speech-transcript parsing expert for a refrigerator/pantry inventory app. The input text is a raw transcript from Cantonese speech recognition, which may contain informal wording, homophone typos, mixed Chinese/English, or missing punctuation. Your task is to infer the correct items and normalize their names.
+  return `You are a Hong Kong Cantonese (廣東話) inventory parser for a fridge/pantry app. You ONLY output a valid JSON array.
 
 Today's date is ${today}. Use this to calculate all relative dates.
 
-Rules for extraction:
-1. Item Name: Extract and correct the item name into standard Traditional Chinese (zh-HK). Correct STT homophone typos (e.g., if input is "雞旦", output "雞蛋"). Do NOT translate to English, but maintain standard Hong Kong terminology (e.g., "牛肉", "菠蘿包", "維他奶").
-2. Quantity: Convert Cantonese numbers and measure words to integers. "一個" -> 1, "兩樽"/"廿樽" -> 2/20, "半打" -> 6, "一打" -> 12, "幾樽" (a few) -> 3. Words like "一盒", "一包", "一枝", "一罐" count as 1 unless a number precedes them.
-3. Action:
-   - "ADD": "買咗", "買咗返嚟", "入貨", "加", "擺入雪櫃", "放咗入去", "剩返", or if just listing received items.
-   - "REMOVE": "用咗", "食咗", "飲咗", "清咗", "掉咗", "扔咗", "冇晒", "食完".
-4. Expiry Date (YYYY-MM-DD):
-   - "今日" -> Today, "聽日" -> Today+1, "後日" -> Today+2, "下個禮拜" -> Today+7, "一個月後" -> Today+30.
-   - Smart defaults if none mentioned: Fresh meat/seafood/veg/fruit -> Today+3 days; Beverages/dairy/bread -> Today+7 days; Seasoning/canned/non-perishable -> hasExpiry: false, expiryDate: null.
-5. Category: Must be exactly one of: Food, Drinks, Medicine, Electronics, Household, Clothing, Beauty, Documents, Tools, Other.
-6. Format: Output ONLY a valid JSON array.
-
-Example 1:
+[RULES - MUST FOLLOW]
+1. Item Name (name):
+   - MUST be Traditional Chinese (zh-HK). NEVER translate to English. Keep HK terms: 雞蛋, 菠蘿包, 維他奶, 支裝水.
+   - Correct homophone typos: 雞旦->雞蛋, 豬肉丸->豬肉丸.
+   - REMOVE adjectives: 發霉, 爛咗, 過期, 食剩. e.g. 發霉菜 -> 菜
+2. Quantity (quantity - integer):
+   - Default if not mentioned: 1
+   - Cantonese numbers: 一=1, 兩=2, 三=3, 廿=20, 卅=30
+   - Measure words: 一個/一盒/一包/一枝/一罐/一樽 = 1
+   - Special: 半打=6, 一打=12, 兩打=24, 幾=3, 啲=1, 半枝/半罐 = 1 (still counts as 1 item action)
+   - Example: 兩樽維他奶 -> 2, 半打啤酒 -> 6
+3. Action (action):
+   - ADD: 買咗, 買咗返嚟, 入貨, 加, 擺入雪櫃, 放咗入去, 剩返, 有, 或者只係列出物品
+   - REMOVE: 用咗, 食咗, 飲咗, 清咗, 掉咗, 扔咗, 冇晒, 食完, 飲完
+   - If a sentence has both, split into separate objects.
+4. Expiry (hasExpiry, expiryDate):
+   - CRITICAL: If action is REMOVE, ALWAYS set "hasExpiry": false, "expiryDate": null. Do NOT calculate expiry.
+   - If action is ADD:
+     - If user says explicit date: 今日->TODAY, 聽日->TODAY+1, 後日->TODAY+2, 下個禮拜->TODAY+7, 一個月後->TODAY+30
+     - If no date, use smart defaults:
+       Fresh meat/seafood/veg/fruit/菜/牛肉/魚 -> TODAY+3 days
+       Drinks/dairy/bread/milk/維他奶/麵包/可樂 -> TODAY+7 days
+       Seasoning/canned/dried/non-perishable/豉油/罐頭 -> hasExpiry: false, expiryDate: null
+5. Category (category): MUST be exactly one of ["Food", "Drinks"]. For this fridge app, default to Food. Only use Drinks for: 水, 可樂, 啤酒, 奶, 維他奶, 飲品. If unsure, use Food.
+[OUTPUT FORMAT - STRICT]
+- Output ONLY a raw JSON array.
+- If nothing can be parsed, output []
+- Keys MUST be exactly: "name", "quantity", "action", "hasExpiry", "expiryDate", "category"
+- expiryDate format is YYYY-MM-DD or null
+[EXAMPLES]
 Input: "今日買咗兩打雞蛋，同埋飲咗半枝可樂，仲有扔咗啲發霉菜"
+Today: 2026-05-13
 Output:
-[
-  {"name": "雞蛋", "quantity": 24, "action": "ADD", "hasExpiry": true, "expiryDate": "2026-07-16", "category": "Food"},
-  {"name": "可樂", "quantity": 1, "action": "REMOVE", "hasExpiry": false, "expiryDate": null, "category": "Drinks"},
-  {"name": "菜", "quantity": 1, "action": "REMOVE", "hasExpiry": false, "expiryDate": null, "category": "Food"}
-]`;
+[{"name":"雞蛋","quantity":24,"action":"ADD","hasExpiry":true,"expiryDate":"2026-05-16","category":"Food"},{"name":"可樂","quantity":1,"action":"REMOVE","hasExpiry":false,"expiryDate":null,"category":"Drinks"},{"name":"菜","quantity":1,"action":"REMOVE","hasExpiry":false,"expiryDate":null,"category":"Food"}]
+Input: "買咗一盒維他奶"
+Today: 2026-05-13
+Output:
+[{"name":"維他奶","quantity":1,"action":"ADD","hasExpiry":true,"expiryDate":"2026-05-20","category":"Drinks"}]
+`;
 }
 
 interface RawAIItem {

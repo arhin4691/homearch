@@ -29,7 +29,7 @@ export function DatePicker({
   const selected = value ? new Date(value + "T00:00:00") : null;
 
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"day" | "year">("day");
+  const [mode, setMode] = useState<"day" | "year" | "month">("day");
   useBodyScrollLock(open);
   const [viewYear, setViewYear] = useState(
     selected?.getFullYear() ?? today.getFullYear()
@@ -99,11 +99,13 @@ export function DatePicker({
       }).format(selected)
     : "";
 
-  // Year range: 20 years back to 10 years forward
-  const years = Array.from(
-    { length: 31 },
-    (_, i) => today.getFullYear() - 20 + i
-  );
+  const years = Array.from({ length: 11 }, (_, i) => today.getFullYear() + i);
+  const months = Array.from({ length: 12 }, (_, month) => ({
+    month,
+    name: new Intl.DateTimeFormat(locale, { month: "long" }).format(
+      new Date(viewYear, month, 1),
+    ),
+  }));
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -225,7 +227,7 @@ export function DatePicker({
                   <div className="grid grid-cols-7 gap-y-1">
                     {cells.map((day, i) => {
                       if (day === null) {
-                        return <div key={`blank-${i}`} />;
+                        return <div key={`blank-${i}`} className="w-full aspect-square" />;
                       }
                         const isSelected =
                           selected &&
@@ -281,7 +283,7 @@ export function DatePicker({
                         type="button"
                         onClick={() => {
                           setViewYear(yr);
-                          setMode("day");
+                          setMode("month");
                         }}
                         className={clsx(
                           "py-3 rounded-xl text-sm font-semibold transition-all active:scale-95",
@@ -297,6 +299,48 @@ export function DatePicker({
                     ))}
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={() => setMode("day")}
+                    className="mt-4 w-full py-2.5 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                  >
+                    {t("cancel")}
+                  </button>
+                </>
+              )}
+
+              {mode === "month" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setMode("year")}
+                    className="block mx-auto text-base font-semibold text-[var(--foreground)] mb-4"
+                  >
+                    {viewYear}
+                  </button>
+                  <p className="text-center text-sm font-medium text-[var(--muted)] mb-3">
+                    {t("selectMonth")}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {months.map(({ month, name }) => (
+                      <button
+                        key={month}
+                        type="button"
+                        onClick={() => {
+                          setViewMonth(month);
+                          setMode("day");
+                        }}
+                        className={clsx(
+                          "py-3 rounded-xl text-sm font-semibold capitalize transition-all active:scale-95",
+                          month === viewMonth
+                            ? "bg-[#7dc0ff] text-white shadow-md shadow-[#7dc0ff]/30"
+                            : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--foreground)] hover:border-[#7dc0ff]",
+                        )}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setMode("day")}

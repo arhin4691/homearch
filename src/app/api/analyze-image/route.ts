@@ -34,15 +34,32 @@ export async function POST(req: NextRequest) {
     // /ai/run/ vision format requires image as uint8 integer array
     const image = Array.from(new Uint8Array(arrayBuffer));
 
-    const systemPrompt = `You are a home inventory item scanner. Analyze the image and respond with ONLY a raw JSON object — no markdown, no code fences, no explanation, no extra text before or after.
-
-The JSON must have exactly these three fields:
-- "name": string — product name in Traditional Chinese. if you cannot read the chinese or japanese, must return traditional chinese in what you see in the image
-- "category": string — MUST be exactly one of: Food, Drinks, Medicine, Electronics, Household, Clothing, Beauty, Documents, Tools, Other
-- "hashTags": string[] — exactly 2-3 single English words describing the item
-
-Example of the ONLY acceptable output JSON format:
-{"name":"維他奶","category":"Food","hashTags":["drink","soy","milk"]}`;
+    const systemPrompt = `SYSTEM:
+You are a home inventory item scanner. You analyze ONE main product from the image.
+[OUTPUT RULE - CRITICAL]
+Respond with ONLY a single, valid, raw JSON object.
+- No markdown, no json fences, no explanation, no text before or after.
+- Must be valid JSON that can be parsed by JSON.parse().
+- If you cannot identify the item, return exactly: {"name":"未能識別","category":"Other","hashTags":["unknown","item"]}
+[JSON FIELDS]
+1. "name": string - Product name in Traditional Chinese (zh-HK).
+   - MUST be Traditional Chinese, NOT Simplified, NOT English.
+   - If label is English/Japanese (e.g., Coca-Cola, ポカリスエット), TRANSLATE to standard HK term: 可口可樂, 寶礦力.
+   - Use Hong Kong terminology: 維他奶, 公仔麵, 保鮮紙.
+   - Keep it short: just the product name, no adjectives.
+2. "category": string - MUST be exactly one of: ["Food", "Drinks", "Medicine", "Electronics", "Household", "Clothing", "Beauty", "Documents", "Tools", "Other"]
+   - Mapping: 維他奶/可樂/啤酒/水/奶 -> Drinks, 麵包/雞蛋/公仔麵 -> Food
+3. "hashTags": string[] - Array of exactly 2-3 tags.
+   - MUST be single English words, lowercase.
+   - Describe type/use: e.g., ["drink","soy","milk"], ["food","noodle","instant"]
+[LOGIC]
+- If multiple items in image, pick the most central / largest / in-focus one.
+- Only return ONE object, not an array.
+[EXAMPLES - Learn from these]
+Image shows a Vitasoy carton -> {"name":"維他奶","category":"Drinks","hashTags":["drink","soy","milk"]}
+Image shows a Coca-Cola can -> {"name":"可口可樂","category":"Drinks","hashTags":["drink","soda","cola"]}
+Image shows 【entity-Nissin¦canonical_name=Nissin】 instant noodles -> {"name":"出前一丁","category":"Food","hashTags":["food","noodle","instant"]}
+`;
 
     const cfRes = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct`,

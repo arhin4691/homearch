@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
-import { User, Lock, Palette, Globe, Users, Key, Plus, Trash2, Copy, LogOut, QrCode, Fingerprint, UserPlus, Camera, Loader2 } from "lucide-react";
+import { User, Lock, Palette, Globe, Users, Key, Plus, Trash2, Copy, LogOut, QrCode, Fingerprint, UserPlus, Camera, Loader2, Download } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
@@ -14,9 +14,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import type { ApiKeyPermission } from "@/lib/api-key-permissions";
 
 // --- Profile form ---
 const profileSchema = z.object({ name: z.string().min(2) });
@@ -30,6 +33,18 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
+  const tItems = useTranslations("items");
+  const permissionLabels: Record<ApiKeyPermission, string> = {
+    "items:read": t("apiScopeItemsRead"),
+    "items:read:filtered": t("apiScopeFilteredItems"),
+    "items:create": t("apiScopeCreateItems"),
+    "locations:read": t("apiScopeReadLocations"),
+    "locations:create": t("apiScopeCreateLocations"),
+  };
+  const permissionOptions = Object.entries(permissionLabels) as [
+    ApiKeyPermission,
+    string,
+  ][];
   const router = useRouter();
   const { user, loading, logout, refreshUser } = useAuth();
   const appUrl =
@@ -47,11 +62,16 @@ export default function SettingsPage() {
   const [showCreateKey, setShowCreateKey] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
+  const [newApiKeyPermissions, setNewApiKeyPermissions] = useState<
+    ApiKeyPermission[]
+  >([]);
   const [newApiKey, setNewApiKey] = useState("");
   const [showQr, setShowQr] = useState(false);
   const [showMyQr, setShowMyQr] = useState(false);
   const [locale, setLocale] = useState("en");
   const [saving, setSaving] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("xlsx");
+  const [exporting, setExporting] = useState(false);
 
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -123,23 +143,59 @@ export default function SettingsPage() {
   };
 
   const createApiKey = async () => {
-    if (!newKeyName.trim()) return;
-    const res = await fetch("/api/api-keys", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newKeyName }),
-    });
-    const json = await res.json();
-    if (res.ok) {
+    if (!newKeyName.trim() || newApiKeyPermissions.length === 0) return;
+    try {
+      const res = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newKeyName,
+          permissions: newApiKeyPermissions,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? t("apiKeyCreateFailed"));
       setNewApiKey(json.data.key);
-      setApiKeys((prev) => [...prev, { id: json.data.id, name: newKeyName }]);
+      setApiKeys((prev) => [
+        ...prev,
+        {
+          id: json.data.id,
+          name: newKeyName,
+          permissions: json.data.permissions,
+        },
+      ]);
       setNewKeyName("");
+    } catch (error) {
+      console.error("API key creation failed:", error);
+      showToast(t("apiKeyCreateFailed"), "error");
     }
   };
 
   const deleteApiKey = async (id: string) => {
     await fetch(`/api/api-keys/${id}`, { method: "DELETE" });
     setApiKeys((prev) => prev.filter((k) => k.id !== id));
+  };
+
+  const exportInventory = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch(`/api/items/export?format=${exportFormat}`);
+      if (!response.ok) throw new Error(`Export failed (${response.status})`);
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `homearch-inventory.${exportFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    } catch (error) {
+      console.error("Inventory export failed:", error);
+      showToast(tItems("exportError"), "error");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const uploadAvatar = async (file: File) => {
@@ -255,7 +311,12 @@ export default function SettingsPage() {
         {/* Language */}
         <Section icon={<Globe className="h-4 w-4 text-green-500" />} title={t("language")}>
           <div className="flex gap-2">
-            {[{ code: "en", label: "English" }, { code: "zh-HK", label: "繁體中文" }].map((lang) => (
+            {[
+              { code: "en", label: "English" },
+              { code: "zh-HK", label: "繁體中文" },
+              { code: "ja", label: "日本語" },
+              { code: "zh-CN", label: "简体中文" },
+            ].map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => changeLocale(lang.code)}
@@ -352,18 +413,62 @@ export default function SettingsPage() {
           )}
         </Section>
 
+        {user?.familyId && (
+          <Section icon={<Download className="h-4 w-4 text-[#7dc0ff]" />} title={tItems("exportFormat")}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Dropdown
+                value={exportFormat}
+                onChange={setExportFormat}
+                options={[
+                  { value: "xlsx", label: tItems("exportXlsx") },
+                  { value: "csv", label: tItems("exportCsv") },
+                ]}
+                aria-label={tItems("exportFormat")}
+              />
+              <button
+                type="button"
+                onClick={exportInventory}
+                disabled={exporting}
+                className="flex items-center gap-2 h-10 rounded-xl bg-[var(--card)] border border-[var(--card-border)] px-3 text-sm font-medium text-[var(--foreground)] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {exporting
+                  ? tItems("exporting")
+                  : tItems("exportInventory")}
+              </button>
+            </div>
+          </Section>
+        )}
+
         {/* API Keys ??owner only */}
         {family?.ownerId === user?.id && (
           <Section icon={<Key className="h-4 w-4 text-yellow-500" />} title={t("apiKeys")}>
             <div className="flex flex-col gap-3">
               {apiKeys.map((key) => (
                 <div key={key.id} className="flex items-center justify-between p-3 bg-[var(--background)] rounded-xl">
-                  <span className="text-sm font-medium text-[var(--foreground)]">{key.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium text-[var(--foreground)]">{key.name}</span>
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      {key.permissions?.length
+                        ? key.permissions
+                            .map((permission: ApiKeyPermission) => permissionLabels[permission])
+                            .join(", ")
+                        : t("apiKeyNoScopes")}
+                    </p>
+                  </div>
                   <button onClick={() => deleteApiKey(key.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
+              <a
+                href="/api/external/v1/help"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-[#7dc0ff] underline underline-offset-2"
+              >
+                {t("apiKeyHelp")}
+              </a>
               <button
                 onClick={() => setShowCreateKey(true)}
                 className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-[var(--card-border)] text-[var(--muted)] text-sm hover:border-[#7dc0ff] hover:text-[#7dc0ff] transition-colors"
@@ -460,15 +565,45 @@ export default function SettingsPage() {
       {/* Create API Key Modal */}
       <Modal
         open={showCreateKey}
-        onClose={() => { setShowCreateKey(false); setNewApiKey(""); setNewKeyName(""); }}
+        onClose={() => {
+          setShowCreateKey(false);
+          setNewApiKey("");
+          setNewKeyName("");
+          setNewApiKeyPermissions([]);
+        }}
         title={t("newApiKey")}
         footer={
           newApiKey ? (
-            <Button onClick={() => { setShowCreateKey(false); setNewApiKey(""); }} fullWidth>{t("done")}</Button>
+            <Button
+              onClick={() => {
+                setShowCreateKey(false);
+                setNewApiKey("");
+                setNewApiKeyPermissions([]);
+              }}
+              fullWidth
+            >
+              {t("done")}
+            </Button>
           ) : (
             <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => setShowCreateKey(false)} fullWidth>{t("cancel")}</Button>
-              <Button onClick={createApiKey} fullWidth>{t("create")}</Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowCreateKey(false);
+                  setNewKeyName("");
+                  setNewApiKeyPermissions([]);
+                }}
+                fullWidth
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                onClick={createApiKey}
+                disabled={!newKeyName.trim() || newApiKeyPermissions.length === 0}
+                fullWidth
+              >
+                {t("create")}
+              </Button>
             </div>
           )
         }
@@ -484,12 +619,37 @@ export default function SettingsPage() {
             </div>
           </div>
         ) : (
-          <Input
-            label={t("apiKeyName")}
-            value={newKeyName}
-            onChange={(e) => setNewKeyName(e.target.value)}
-            placeholder={t("apiKeyNamePlaceholder")}
-          />
+          <div className="flex flex-col gap-4">
+            <Input
+              label={t("apiKeyName")}
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              placeholder={t("apiKeyNamePlaceholder")}
+            />
+            <fieldset className="flex flex-col gap-2">
+              <legend className="text-sm font-medium text-[var(--foreground)]">
+                {t("apiKeyPermissions")}
+              </legend>
+              {permissionOptions.map(([permission, label]) => (
+                <label
+                  key={permission}
+                  className="flex items-center gap-2 text-sm text-[var(--foreground)]"
+                >
+                  <Checkbox
+                    checked={newApiKeyPermissions.includes(permission)}
+                    onChange={(event) =>
+                      setNewApiKeyPermissions((current) =>
+                        event.target.checked
+                          ? [...current, permission]
+                          : current.filter((value) => value !== permission),
+                      )
+                    }
+                  />
+                  {label}
+                </label>
+              ))}
+            </fieldset>
+          </div>
         )}
       </Modal>
     </AppShell>
@@ -636,4 +796,3 @@ function CreateFamilyForm({ onCreated }: { onCreated: (f: any) => void }) {
     </div>
   );
 }
-

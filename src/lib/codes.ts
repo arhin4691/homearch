@@ -11,5 +11,14 @@ export function generateFamilyCode(): string {
 }
 
 export function generateApiKey(): string {
-  return `hma_${customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 40)()}`;
+  const random = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 40);
+  const keyId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16)();
+  return `hma_${keyId}_${random()}`;
+}
+
+export function parseApiKey(rawKey: string | null) {
+  if (!rawKey || rawKey.length > 64) return null;
+  const match = /^hma_([a-z0-9]{16})_([a-z0-9]{40})$/.exec(rawKey);
+  if (!match) return null;
+  return { keyId: match[1], rawKey };
 }
