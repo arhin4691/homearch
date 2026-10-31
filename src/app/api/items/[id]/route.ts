@@ -4,7 +4,9 @@ import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/mongodb";
 import { Item } from "@/models/Item";
 import { User } from "@/models/User";
-import "@/models/Location";
+import { Location } from "@/models/Location";
+import { isValidObjectId, Types } from "mongoose";
+import { inventoryUpdatePipeline } from "@/lib/inventory-update";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { deleteImageKitFile } from "@/lib/imagekit";
 import { z } from "zod";
@@ -29,12 +31,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!session) return apiError("Unauthorized", 401);
 
     const { id } = await params;
+    if (!isValidObjectId(id)) return apiError("Item not found", 404);
     await connectDB();
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);
 
     const item = await Item.findOne({ _id: id, familyId: user.familyId })
-      .populate("locationId", "name")
+      .populate({ path: "locationId", select: "name", match: { familyId: user.familyId } })
       .populate("uploaderId", "name avatarUrl")
       .lean();
 
@@ -74,6 +77,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!session) return apiError("Unauthorized", 401);
 
     const { id } = await params;
+    if (!isValidObjectId(id)) return apiError("Item not found", 404);
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422);
@@ -82,15 +86,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);
 
+    if (parsed.data.locationId) {
+      if (!(await Item.exists({ _id: id, familyId: user.familyId }))) {
+        return apiError("Item not found", 404);
+      }
+      if (
+        !isValidObjectId(parsed.data.locationId) ||
+        !(await Location.exists({ _id: parsed.data.locationId, familyId: user.familyId }))
+      ) {
+        return apiError("Location not found", 404);
+      }
+    }
+
     const updates: Record<string, unknown> = {};
     const { expiryDate, bestBeforeDate, ...rest } = parsed.data;
     Object.assign(updates, rest);
+    if (typeof updates.locationId === "string") {
+      updates.locationId = updates.locationId ? new Types.ObjectId(updates.locationId) : null;
+    }
+    if (typeof updates.name === "string") updates.name = updates.name.trim();
     if (expiryDate !== undefined) updates.expiryDate = expiryDate ? new Date(expiryDate) : null;
     if (bestBeforeDate !== undefined) updates.bestBeforeDate = bestBeforeDate ? new Date(bestBeforeDate) : null;
 
     const item = await Item.findOneAndUpdate(
       { _id: id, familyId: user.familyId },
-      { $set: updates },
+      inventoryUpdatePipeline(updates),
       { new: true }
     );
     if (!item) return apiError("Item not found", 404);
@@ -108,6 +128,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!session) return apiError("Unauthorized", 401);
 
     const { id } = await params;
+    if (!isValidObjectId(id)) return apiError("Item not found", 404);
     await connectDB();
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);

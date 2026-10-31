@@ -96,6 +96,12 @@ export async function authenticateExternalApiKey(
   if (!storedKey || !(await comparePassword(parsed.rawKey, storedKey.apiKeyHash))) {
     return null;
   }
+  if (!storedKey.createdBy || !(await User.exists({
+    _id: storedKey.createdBy,
+    familyId: storedKey.familyId,
+  }))) {
+    return null;
+  }
 
   const permissions = (storedKey.permissions ?? []).filter(
     (permission): permission is ApiKeyPermission =>

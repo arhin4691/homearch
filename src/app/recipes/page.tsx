@@ -3,14 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChefHat,
   Search,
   CheckCircle2,
   Clock,
   Flame,
   Tag,
   Trash2,
-  Plus,
   Loader2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -23,6 +21,8 @@ import { FridgeChefModal } from "@/components/FridgeChefModal";
 import { RecipeDetailModal, type RecipeDetail } from "@/components/RecipeDetailModal";
 import { useToast } from "@/components/ui/Toast";
 import { clsx } from "clsx";
+import { AssistantPanel } from "@/components/AssistantPanel";
+import { Modal } from "@/components/ui/Modal";
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   Easy: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -39,6 +39,7 @@ const PAGE_SIZE = 12;
 
 export default function RecipesPage() {
   const t = useTranslations("fridgeChef");
+  const assistant = useTranslations("assistant");
   const router = useRouter();
   const { user, loading } = useAuth();
   const { showToast } = useToast();
@@ -50,6 +51,7 @@ export default function RecipesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail | null>(null);
 
@@ -74,6 +76,8 @@ export default function RecipesPage() {
           setRecipes((prev) => (replace ? incoming : [...prev, ...incoming]));
           setHasMore(json.data.hasMore);
           setPage(pg);
+        } else {
+          showToast(t("generateFailed"), "error");
         }
       } catch {
         showToast(t("generateFailed"), "error");
@@ -86,9 +90,10 @@ export default function RecipesPage() {
   );
 
   useEffect(() => {
+    if (!showSaved) return;
     const timer = setTimeout(() => fetchRecipes(1, true), 300);
     return () => clearTimeout(timer);
-  }, [fetchRecipes]);
+  }, [fetchRecipes, showSaved]);
 
   const deleteRecipe = async (id: string) => {
     if (!confirm(t("deleteConfirm"))) return;
@@ -110,20 +115,11 @@ export default function RecipesPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-center mb-4 w-full">
-        <div className="relative flex items-center justify-center">
-          <h1 className="mt-2 text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#7dc0ff] via-[#7dc0ff] to-purple-500 text-center">
-            {t("title")}
-          </h1>
-
-          <span className="mt-5 absolute left-full ml-3 whitespace-nowrap text-[0.5rem] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
-            BETA
-          </span>
-        </div>
-      </div>
-
-      {/* Search bar */}
-      <div className="mb-4" style={{ position: "sticky", top: 10, zIndex: 1 }}>
+      <AssistantPanel key={`${user?.id ?? ""}:${user?.familyId ?? ""}`} onRecipes={() => setShowModal(true)} onSavedRecipes={() => setShowSaved(true)} />
+      {user?.familyId && (
+      <>
+      <Modal open={showSaved} onClose={() => setShowSaved(false)} title={assistant("savedRecipes")} size="lg">
+      <div className="mb-4">
         <Input
           placeholder={t("searchPlaceholder")}
           leftIcon={<Search className="h-4 w-4" />}
@@ -162,7 +158,7 @@ export default function RecipesPage() {
                       : "border-[var(--card-border)]",
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3" onClick={() => setSelectedRecipe(recipe)} style={{ cursor: "pointer" }}>
+                  <div className="flex items-start justify-between gap-3" onClick={() => { setShowSaved(false); setSelectedRecipe(recipe); }} style={{ cursor: "pointer" }}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         {recipe.isUsed && (
@@ -265,13 +261,7 @@ export default function RecipesPage() {
         </>
       )}
 
-      {/* FAB */}
-      <button
-        onClick={() => setShowModal(true)}
-        className="fixed bottom-28 right-5 w-16 h-16 bg-[#7dc0ff] hover:bg-[#5aabff] text-white rounded-4xl shadow-xl shadow-[#7dc0ff]/40 flex items-center justify-center transition-all active:scale-95 z-30"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      </Modal>
 
       <FridgeChefModal
         open={showModal}
@@ -281,8 +271,10 @@ export default function RecipesPage() {
 
       <RecipeDetailModal
         recipe={selectedRecipe}
-        onClose={() => setSelectedRecipe(null)}
+        onClose={() => { setSelectedRecipe(null); setShowSaved(true); }}
       />
+      </>
+      )}
     </AppShell>
   );
 }

@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { action } = body;
 
     await connectDB();
-    const notif = await Notification.findOne({ _id: id, recipientId: session.userId });
+    const notif = await Notification.findOne({ _id: id, recipientId: session.userId, clearedAt: null });
     if (!notif) return apiError("Notification not found", 404);
 
     if (action === "accept" && notif.type === "FAMILY_INVITE") {

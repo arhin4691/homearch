@@ -6,10 +6,11 @@ import { Item } from "@/models/Item";
 import { User } from "@/models/User";
 import { Notification } from "@/models/Notification";
 import { ProductDictionary } from "@/models/ProductDictionary";
-import "@/models/Location";
+import { Location } from "@/models/Location";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { z } from "zod";
 import { ITEM_CATEGORIES } from "@/models/Item";
+import { isValidObjectId } from "mongoose";
 
 const schema = z.object({
   name: z.string().min(1).max(100),
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
     const sortQuery = sortMap[sort] ?? sortMap.name_asc;
 
     const baseQuery = Item.find(query)
-      .populate("locationId", "name")
+      .populate({ path: "locationId", select: "name", match: { familyId: user.familyId } })
       .populate("uploaderId", "name avatarUrl")
       .sort(sortQuery);
 
@@ -137,6 +138,12 @@ export async function POST(req: NextRequest) {
     if (!user?.familyId) return apiError("Not in a family", 403);
 
     const { expiryDate, bestBeforeDate, locationId, barcode, ...rest } = parsed.data;
+    if (locationId && (
+      !isValidObjectId(locationId) ||
+      !(await Location.exists({ _id: locationId, familyId: user.familyId }))
+    )) {
+      return apiError("Location not found", 404);
+    }
     const item = await Item.create({
       ...rest,
       familyId: user.familyId,

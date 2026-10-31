@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Item } from "@/models/Item";
 import { User } from "@/models/User";
 import { apiSuccess, apiError } from "@/lib/api-response";
+import { isValidObjectId } from "mongoose";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,6 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!session) return apiError("Unauthorized", 401);
 
     const { id } = await params;
+    if (!isValidObjectId(id)) return apiError("Item not found", 404);
     await connectDB();
     const user = await User.findById(session.userId).lean();
     if (!user?.familyId) return apiError("Not in a family", 403);
@@ -23,10 +25,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const alreadyFavorited = item.favoritedBy.some((fid) => fid.toString() === userId);
 
     if (alreadyFavorited) {
-      await Item.findByIdAndUpdate(id, { $pull: { favoritedBy: user._id } });
+      const updated = await Item.findOneAndUpdate({ _id: id, familyId: user.familyId }, { $pull: { favoritedBy: user._id } });
+      if (!updated) return apiError("Item not found", 404);
       return apiSuccess({ isFavorite: false });
     } else {
-      await Item.findByIdAndUpdate(id, { $addToSet: { favoritedBy: user._id } });
+      const updated = await Item.findOneAndUpdate({ _id: id, familyId: user.familyId }, { $addToSet: { favoritedBy: user._id } });
+      if (!updated) return apiError("Item not found", 404);
       return apiSuccess({ isFavorite: true });
     }
   } catch (e) {

@@ -5,7 +5,6 @@ import { Item } from "@/models/Item";
 import { Location } from "@/models/Location";
 import { Notification } from "@/models/Notification";
 import { User } from "@/models/User";
-import { notifyFamily } from "@/lib/notify-family";
 import { apiSuccess, apiError } from "@/lib/api-response";
 
 export async function GET() {
@@ -31,11 +30,11 @@ export async function GET() {
           expiryDate: { $gte: now, $lte: in7Days },
         }),
         Item.find({ familyId: user.familyId })
-          .populate("locationId", "name")
+          .populate({ path: "locationId", select: "name", match: { familyId: user.familyId } })
           .sort({ createdAt: -1 })
           .limit(8)
           .lean(),
-        Notification.countDocuments({ recipientId: session.userId, status: "PENDING" }),
+        Notification.countDocuments({ recipientId: session.userId, status: "PENDING", clearedAt: null }),
       ]);
 
     const expiringList = await Item.find({
@@ -69,33 +68,6 @@ export async function GET() {
         createdAt: item.createdAt,
       })),
     };
-
-    // Check expiry alerts: notify family for items expiring soon (deduped per 24 h)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    for (const item of expiringList) {
-      if ((item.quantity ?? 1) <= 0) continue;
-      const itemId = (item._id as { toString(): string }).toString();
-      const alreadyNotified = await Notification.findOne({
-        type: "EXPIRY_ALERT",
-        "metadata.itemId": itemId,
-        createdAt: { $gte: oneDayAgo },
-      }).lean();
-      if (!alreadyNotified) {
-        const daysLeft = Math.ceil(
-          ((item.expiryDate as Date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        await notifyFamily({
-          familyId: user.familyId,
-          type: "EXPIRY_ALERT",
-          title: daysLeft <= 0 ? "Item Expired" : "Expiring Soon",
-          message:
-            daysLeft <= 0
-              ? `"${item.name}" has expired`
-              : `"${item.name}" expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
-          metadata: { itemId, daysUntilExpiry: daysLeft },
-        });
-      }
-    }
 
     return apiSuccess(responseData);
   } catch (e) {

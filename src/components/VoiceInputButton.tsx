@@ -9,6 +9,23 @@ import { VoicePreviewDrawer, type VoicePreviewItem } from "@/components/VoicePre
 
 type RecognitionState = "idle" | "listening" | "processing";
 
+interface BrowserRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+type RecognitionWindow = Window & {
+  SpeechRecognition?: new () => BrowserRecognition;
+  webkitSpeechRecognition?: new () => BrowserRecognition;
+};
+
 interface VoiceInputButtonProps {
   /** Called after the user successfully commits changes (e.g. to refetch a list). */
   onApplied?: () => void;
@@ -21,8 +38,7 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
   const [state, setState] = useState<RecognitionState>("idle");
   const [previewItems, setPreviewItems] = useState<VoicePreviewItem[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<BrowserRecognition | null>(null);
 
   const parseTranscript = useCallback(
     async (transcript: string) => {
@@ -34,7 +50,9 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
           body: JSON.stringify({ text: transcript }),
         });
         const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.error ?? t("voiceParseFailed"));
+        if (!res.ok || !json.success) {
+          throw new Error(res.status === 422 ? t("voiceNeedDetails") : t("voiceParseFailed"));
+        }
 
         const parsedItems: VoicePreviewItem[] = json.data?.items ?? [];
         if (parsedItems.length === 0) {
@@ -43,8 +61,8 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
         }
         setPreviewItems(parsedItems);
         setDrawerOpen(true);
-      } catch (e: any) {
-        showToast(e.message ?? t("voiceParseFailed"), "error");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : t("voiceParseFailed"), "error");
       } finally {
         setState("idle");
       }
@@ -53,10 +71,9 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
   );
 
   const startListening = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognitionCtor: any =
+    const SpeechRecognitionCtor =
       typeof window !== "undefined"
-        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        ? (window as RecognitionWindow).SpeechRecognition || (window as RecognitionWindow).webkitSpeechRecognition
         : null;
 
     if (!SpeechRecognitionCtor) {
@@ -70,7 +87,7 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const transcript: string | undefined = event.results?.[0]?.[0]?.transcript?.trim();
       if (transcript) {
         parseTranscript(transcript);
@@ -80,7 +97,7 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event) => {
       if (event.error === "no-speech") {
         showToast(t("voiceNoSpeechDetected"), "info");
       } else if (event.error === "not-allowed" || event.error === "service-not-allowed") {
@@ -152,9 +169,10 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
               ? t("voiceProcessing")
               : t("voiceInput")}
         </span>
+        <span className="text-xs text-[var(--muted)] text-center">{t("voicePrivacy")}</span>
       </button>
 
-      <VoicePreviewDrawer
+      {drawerOpen && <VoicePreviewDrawer
         open={drawerOpen}
         items={previewItems}
         onClose={() => setDrawerOpen(false)}
@@ -162,7 +180,7 @@ export function VoiceInputButton({ onApplied, className }: VoiceInputButtonProps
           setDrawerOpen(false);
           onApplied?.();
         }}
-      />
+      />}
     </>
   );
 }

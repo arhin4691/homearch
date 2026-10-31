@@ -102,7 +102,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Unassign items from this location
-    await Item.updateMany({ locationId: id }, { $unset: { locationId: "" } });
+    await Item.updateMany({ locationId: id, familyId: user.familyId }, { $unset: { locationId: "" } });
 
     return apiSuccess({ message: "Deleted" });
   } catch (e) {

@@ -104,12 +104,6 @@ export function FridgeChefModal({
       if (!res.ok || !json.success) throw new Error(json.error);
 
       if (markUsed) {
-        // deduct ingredients via PATCH markUsed
-        await fetch(`/api/recipes/${json.data.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ markUsed: true }),
-        });
         showToast(t("cooked"), "success");
       } else {
         showToast(t("saved"), "success");

@@ -12,6 +12,8 @@ export interface IItem extends Document {
   name: string;
   category: ItemCategory;
   quantity: number;
+  minimumQuantity?: number | null;
+  lowStockCycle: number;
   imageUrl?: string;
   imageFileId?: string;
   hashTags: string[];
@@ -32,6 +34,8 @@ const ItemSchema = new Schema<IItem>(
     name: { type: String, required: true, trim: true },
     category: { type: String, enum: ITEM_CATEGORIES, default: "Other" },
     quantity: { type: Number, default: 1, min: 0 },
+    minimumQuantity: { type: Number, min: 0, default: null },
+    lowStockCycle: { type: Number, default: 0, min: 0 },
     imageUrl: { type: String },
     imageFileId: { type: String },
     hashTags: [{ type: String, lowercase: true, trim: true }],

@@ -12,6 +12,7 @@ export interface INotification extends Document {
   title: string;
   message: string;
   metadata?: Record<string, unknown>;
+  clearedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,7 @@ const NotificationSchema = new Schema<INotification>(
     title: { type: String, required: true },
     message: { type: String, required: true },
     metadata: { type: Schema.Types.Mixed },
+    clearedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

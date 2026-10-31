@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Package, MapPin, ChefHat, Settings, Plus } from "lucide-react";
+import { Home, Package, MapPin, ChefHat, Settings, Plus, PanelLeftClose } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -18,14 +18,23 @@ const navItems = [
   { href: "/settings", icon: Settings, key: "settings" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ desktopCollapsed, mobileOpen, onClose, onNavigate }: {
+  desktopCollapsed: boolean;
+  mobileOpen: boolean;
+  onClose: () => void;
+  onNavigate: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("nav");
   const { user } = useAuth();
 
   return (
-    <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-[var(--card)] border-r border-[var(--card-border)] z-40 py-6 px-4">
+    <aside className={clsx(
+      "flex-col fixed left-0 top-0 h-full w-64 bg-[var(--card)] border-r border-[var(--card-border)] z-40 py-6 px-4",
+      mobileOpen ? "flex" : "hidden",
+      desktopCollapsed ? "lg:hidden" : "lg:flex",
+    )}>
       {/* Logo + bell */}
       <div className="flex items-center justify-between px-2 mb-8">
         <Link href="/" className="flex items-center gap-3 group">
@@ -34,7 +43,10 @@ export function Sidebar() {
           </div>
           <span className="text-lg font-bold text-[var(--foreground)]">Homearch</span>
         </Link>
-        <NotificationBell />
+        {/* <NotificationBell /> */}
+        {/* <button onClick={onClose} aria-label={t("closeSidebar")} className="rounded-xl p-2">
+          <PanelLeftClose className="h-5 w-5" />
+        </button> */}
       </div>
 
       {/* Nav items */}
@@ -49,6 +61,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={clsx(
                 "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive

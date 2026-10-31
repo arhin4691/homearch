@@ -62,7 +62,11 @@ export async function GET(req: NextRequest) {
     if (!user?.familyId) return apiError("Not in a family", 403);
 
     const items = await Item.find({ familyId: user.familyId })
-      .populate<{ locationId: { name: string } | null }>("locationId", "name")
+      .populate<{ locationId: { name: string } | null }>({
+        path: "locationId",
+        select: "name",
+        match: { familyId: user.familyId },
+      })
       .populate<{ uploaderId: { name: string } | null }>("uploaderId", "name")
       .sort({ name: 1, _id: 1 })
       .lean<ExportItem[]>();

@@ -117,6 +117,10 @@ export async function POST(req: NextRequest) {
     const query: Record<string, unknown> = {
       familyId: user.familyId,
       category: { $in: ["Food"] },
+      quantity: { $gt: 0 },
+      $and: [
+        { $or: [{ hasExpiry: false }, { expiryDate: null }, { expiryDate: { $gte: now } }] },
+      ],
     };
     if (useNearExpiry) {
       query.$or = [
