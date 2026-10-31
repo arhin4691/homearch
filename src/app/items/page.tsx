@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   LayoutGrid,
@@ -36,6 +37,31 @@ type FilterOption = "" | "expired" | "expiring";
 
 const FILTER_STATE_KEY = "items-filter-state";
 const RETURN_FROM_ITEM_KEY = "items-return-from-detail";
+const SCROLL_STATE_KEY = "items-scroll-state";
+
+interface Item {
+  id: string;
+  name: string;
+  category: string;
+  quantity?: number;
+  imageUrl?: string;
+  hasExpiry?: boolean;
+  expiryDate?: string;
+  isFavorite?: boolean;
+  location?: { name: string } | null;
+}
+
+interface ItemsPageData {
+  items: Item[];
+  hasMore: boolean;
+}
+
+interface ScrollState {
+  id: string;
+  offset: number;
+  scrollY: number;
+  pages: number;
+}
 
 interface ItemsFilterState {
   search: string;
@@ -78,17 +104,24 @@ function readFilterState(): ItemsFilterState | null {
 
 export default function ItemsPage() {
   const t = useTranslations("items");
+  const tRetry = useTranslations("invite");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [restoredFilters] = useState(readFilterState);
-
-  const [items, setItems] = useState<any[]>([]);
-  const [fetching, setFetching] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
+  const [scrollState] = useState<ScrollState | null>(() => {
+    if (typeof window === "undefined" || !readFilterState()) return null;
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(SCROLL_STATE_KEY) ?? "null");
+      if (saved && typeof saved.id === "string" && typeof saved.offset === "number" && typeof saved.scrollY === "number" && typeof saved.pages === "number") return saved;
+    } catch (error) {
+      console.error("Failed to restore item scroll position", error);
+    }
+    return null;
+  });
+  const [restoring, setRestoring] = useState(!!scrollState);
   const [view, setView] = useState<ViewMode>(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("items-view") as ViewMode) ?? "grid";
@@ -112,13 +145,13 @@ export default function ItemsPage() {
     restoredFilters?.sort ?? "name_asc",
   );
   const [showAddModal, setShowAddModal] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (restoredFilters) {
-      window.sessionStorage.removeItem(RETURN_FROM_ITEM_KEY);
-    }
-  }, [restoredFilters]);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -142,43 +175,72 @@ export default function ItemsPage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  const fetchItems = useCallback(
-    async (pg: number, replace: boolean) => {
-      if (!user) return;
-      if (pg === 1) setFetching(true);
-      else setLoadingMore(true);
-      try {
+  const {
+    data,
+    isPending,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ["items", user?.id, user?.familyId, debouncedSearch, category, filter, showFavorites, sort],
+    enabled: !!user,
+    initialPageParam: 1,
+    gcTime: 30 * 60 * 1000,
+    queryFn: async ({ pageParam, signal }): Promise<ItemsPageData> => {
         const params = new URLSearchParams();
-        if (search) params.set("q", search);
+        if (debouncedSearch) params.set("q", debouncedSearch);
         if (category) params.set("category", category);
         if (filter) params.set("filter", filter);
         if (showFavorites) params.set("favorite", "true");
         if (sort !== "name_asc") params.set("sort", sort);
-        params.set("page", String(pg));
+        params.set("page", String(pageParam));
         params.set("limit", String(PAGE_SIZE));
-        const res = await fetch(`/api/items?${params}`);
-        if (res.ok) {
-          const json = await res.json();
-          const incoming = json.data.items ?? [];
-          setItems((prev) => (replace ? incoming : [...prev, ...incoming]));
-          setHasMore(json.data.hasMore);
-          setPage(pg);
-        }
-      } catch {
-        showToast(t("loadError"), "error");
-      } finally {
-        setFetching(false);
-        setLoadingMore(false);
-      }
+        const res = await fetch(`/api/items?${params}`, { signal });
+        if (!res.ok) throw new Error("Failed to load items");
+        return (await res.json()).data;
     },
-    [user, search, category, filter, showFavorites, sort, showToast, t],
-  );
+    getNextPageParam: (lastPage, pages) => lastPage.hasMore ? pages.length + 1 : undefined,
+  });
+  const items = data?.pages.flatMap((result) => result.items) ?? [];
+  const fetching = isPending || (search !== debouncedSearch);
 
-  // Reset and refetch when filters change
   useEffect(() => {
-    const timer = setTimeout(() => fetchItems(1, true), 300);
-    return () => clearTimeout(timer);
-  }, [fetchItems]);
+    if (error) showToast(t("loadError"), "error");
+  }, [error, showToast, t]);
+
+  useEffect(() => {
+    if (restoring && scrollState && data && !error && !isFetching &&
+        data.pages.length < scrollState.pages && hasNextPage) {
+      void fetchNextPage();
+    }
+  }, [restoring, scrollState, data, error, isFetching, hasNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    if (!restoring || !scrollState || fetching || isFetching) return;
+    if (!error && data && data.pages.length < scrollState.pages && hasNextPage) return;
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById(`item-${scrollState.id}`);
+      window.scrollTo({
+        top: element
+          ? window.scrollY + element.getBoundingClientRect().top - scrollState.offset
+          : scrollState.scrollY,
+        behavior: "instant",
+      });
+      window.sessionStorage.removeItem(SCROLL_STATE_KEY);
+      window.sessionStorage.removeItem(RETURN_FROM_ITEM_KEY);
+      setRestoring(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [restoring, scrollState, fetching, isFetching, data, error, hasNextPage]);
+
+  useEffect(() => {
+    if (!restoring && restoredFilters) {
+      window.sessionStorage.removeItem(RETURN_FROM_ITEM_KEY);
+    }
+  }, [restoring, restoredFilters]);
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -186,30 +248,24 @@ export default function ItemsPage() {
     if (!sentinel) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !fetching) {
-          fetchItems(page + 1, false);
+        if (entries[0].isIntersecting && hasNextPage && !isFetching && !fetching && !restoring && !error) {
+          void fetchNextPage();
         }
       },
       { threshold: 0.1 },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, fetching, page, fetchItems]);
+  }, [hasNextPage, isFetching, fetching, restoring, error, fetchNextPage]);
 
   const toggleFavorite = async (id: string) => {
     try {
       const res = await fetch(`/api/items/${id}/favorite`, { method: "POST" });
-      if (res.ok) {
-        const json = await res.json();
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === id
-              ? { ...item, isFavorite: json.data.isFavorite }
-              : item,
-          ),
-        );
-      }
-    } catch {}
+      if (!res.ok) throw new Error("Failed to update favorite");
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
+    } catch {
+      showToast(t("updateFailed"), "error");
+    }
   };
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -365,6 +421,13 @@ export default function ItemsPage() {
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : error && !data ? (
+        <div className="flex flex-col items-center py-16 gap-4">
+          <p className="text-[var(--muted)] text-sm">{t("loadError")}</p>
+          <button onClick={() => void refetch()} className="text-primary text-sm font-medium">
+            {tRetry("retry")}
+          </button>
+        </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-4">
           <div className="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--card-border)] flex items-center justify-center text-3xl">
@@ -382,25 +445,38 @@ export default function ItemsPage() {
             }
           >
             {items.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                onFavoriteToggle={toggleFavorite}
-                onItemClick={() =>
-                  window.sessionStorage.setItem(RETURN_FROM_ITEM_KEY, "1")
-                }
-                view={view}
-              />
+              <div id={`item-${item.id}`} key={item.id}>
+                <ItemCard
+                  item={item}
+                  onFavoriteToggle={toggleFavorite}
+                  onItemClick={() => {
+                    const element = document.getElementById(`item-${item.id}`);
+                    window.sessionStorage.setItem(SCROLL_STATE_KEY, JSON.stringify({
+                      id: item.id,
+                      offset: element?.getBoundingClientRect().top ?? 0,
+                      scrollY: window.scrollY,
+                      pages: data?.pages.length ?? 1,
+                    }));
+                    window.sessionStorage.setItem(RETURN_FROM_ITEM_KEY, "1");
+                  }}
+                  view={view}
+                />
+              </div>
             ))}
           </div>
 
           {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="h-4" />
 
-          {loadingMore && (
+          {isFetchingNextPage && (
             <div className="flex justify-center py-4">
               <div className="w-6 h-6 border-2 border-[#7dc0ff] border-t-transparent rounded-full animate-spin" />
             </div>
+          )}
+          {error && (
+            <button onClick={() => void (hasNextPage ? fetchNextPage() : refetch())} className="block mx-auto py-4 text-primary text-sm font-medium">
+              {tRetry("retry")}
+            </button>
           )}
         </>
       )}
@@ -417,7 +493,7 @@ export default function ItemsPage() {
       <ItemFormModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSuccess={() => fetchItems(1, true)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["items"] })}
       />
     </AppShell>
   );

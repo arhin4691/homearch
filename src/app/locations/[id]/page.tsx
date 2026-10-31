@@ -5,8 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Package } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { ItemCard } from "@/components/ItemCard";
+import { useToast } from "@/components/ui/Toast";
 
 interface LocationDetail {
   id: string;
@@ -18,6 +20,9 @@ interface LocationDetail {
 
 export default function LocationDetailPage() {
   const t = useTranslations("locations");
+  const tItems = useTranslations("items");
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -31,9 +36,16 @@ export default function LocationDetailPage() {
   }, [id, router]);
 
   const toggleFavorite = async (itemId: string) => {
-    await fetch(`/api/items/${itemId}/favorite`, { method: "POST" });
-    const res = await fetch(`/api/locations/${id}`);
-    if (res.ok) setData((await res.json()).data);
+    try {
+      const favoriteRes = await fetch(`/api/items/${itemId}/favorite`, { method: "POST" });
+      if (!favoriteRes.ok) throw new Error("Failed to update favorite");
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
+      const res = await fetch(`/api/locations/${id}`);
+      if (!res.ok) throw new Error("Failed to load location");
+      setData((await res.json()).data);
+    } catch {
+      showToast(tItems("updateFailed"), "error");
+    }
   };
 
   if (!data) return (

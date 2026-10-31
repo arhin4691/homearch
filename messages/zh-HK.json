@@ -114,6 +114,8 @@
     "empty": "尚無物品",
     "searchPlaceholder": "搜尋物品...",
     "loadError": "載入物品失敗",
+    "locationLoadError": "載入位置失敗",
+    "updateFailed": "更新物品失敗",
     "categories": {
       "Food": "食物",
       "Drinks": "飲品",

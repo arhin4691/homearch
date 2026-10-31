@@ -114,6 +114,8 @@
     "empty": "No items yet",
     "searchPlaceholder": "Search items...",
     "loadError": "Failed to load items",
+    "locationLoadError": "Failed to load locations",
+    "updateFailed": "Failed to update item",
     "categories": {
       "Food": "Food",
       "Drinks": "Drinks",

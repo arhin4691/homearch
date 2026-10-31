@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Loader2, CalendarClock, Ban } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -51,6 +52,7 @@ function pendingQuantity(item: VoicePreviewItem): number {
 export function VoicePreviewDrawer({ open, items, onClose, onApplied }: VoicePreviewDrawerProps) {
   const t = useTranslations("items");
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [editable, setEditable] = useState<VoicePreviewItem[]>([]);
   const [applying, setApplying] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -112,6 +114,7 @@ export function VoicePreviewDrawer({ open, items, onClose, onApplied }: VoicePre
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error ?? t("voiceApplyFailed"));
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
       showToast(t("voiceApplySuccess"), "success");
       onApplied?.();
     } catch (e: any) {

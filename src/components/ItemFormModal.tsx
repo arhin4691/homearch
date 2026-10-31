@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Image from "next/image";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -75,7 +76,7 @@ export function ItemFormModal({
   const [addStep, setAddStep] = useState<AddStep>(isEdit ? "form" : "choose");
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
 
-  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+  const [locations, setLocations] = useState<{ id: string; name: string; imageUrl?: string }[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -227,11 +228,14 @@ export function ItemFormModal({
   // Load locations when modal opens
   useEffect(() => {
     if (!open) return;
-    fetch("/api/locations?limit=9999")
-      .then((r) => r.json())
+    fetch("/api/locations?paginate=false")
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load locations");
+        return r.json();
+      })
       .then((d) => setLocations(d.data?.locations ?? []))
-      .catch(() => {});
-  }, [open]);
+      .catch(() => showToast(t("locationLoadError"), "error"));
+  }, [open, showToast, t]);
 
   // Load item data for edit mode
   useEffect(() => {
@@ -635,7 +639,13 @@ export function ItemFormModal({
                         }}
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors text-left"
                       >
-                        <MapPin className="h-3.5 w-3.5 text-[var(--muted)] flex-shrink-0" />
+                        <span className="relative w-9 h-9 rounded-lg overflow-hidden bg-[var(--background)] flex items-center justify-center flex-shrink-0">
+                          {loc.imageUrl ? (
+                            <Image src={loc.imageUrl} alt="" fill sizes="36px" className="object-cover" />
+                          ) : (
+                            <MapPin className="h-4 w-4 text-[var(--muted)]" />
+                          )}
+                        </span>
                         {loc.name}
                       </button>
                     ))}
@@ -765,4 +775,3 @@ export function ItemFormModal({
     </Modal>
   );
 }
-

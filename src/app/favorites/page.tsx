@@ -5,12 +5,17 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { ItemCard } from "@/components/ItemCard";
+import { useToast } from "@/components/ui/Toast";
 
 export default function FavoritesPage() {
   const t = useTranslations("favorites");
+  const tItems = useTranslations("items");
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const router = useRouter();
   const { user, loading } = useAuth();
   const [items, setItems] = useState<any[]>([]);
@@ -34,8 +39,14 @@ export default function FavoritesPage() {
   useEffect(() => { fetchFavorites(); }, [user]);
 
   const toggleFavorite = async (id: string) => {
-    await fetch(`/api/items/${id}/favorite`, { method: "POST" });
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    try {
+      const res = await fetch(`/api/items/${id}/favorite`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to update favorite");
+      setItems((prev) => prev.filter((item) => item.id !== id));
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
+    } catch {
+      showToast(tItems("updateFailed"), "error");
+    }
   };
 
   return (

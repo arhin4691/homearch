@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +31,7 @@ export default function LocationsPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -135,6 +137,7 @@ export default function LocationsPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
       showToast(editTarget ? t("updated") : t("created"), "success");
       setShowCreate(false);
       setEditTarget(null);
@@ -151,7 +154,9 @@ export default function LocationsPage() {
     if (!deleteTarget) return;
     setSaving(true);
     try {
-      await fetch(`/api/locations/${deleteTarget.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/locations/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
       showToast(t("deleted"), "success");
       setDeleteTarget(null);
       fetchLocations(1, true);

@@ -7,9 +7,10 @@ export function ItemsFilterStateCleanup() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname === "/items" || /^\/items\/[^/]+$/.test(pathname)) return;
+    if (pathname === "/items" || /^\/items\/[^/]+(?:\/edit)?$/.test(pathname)) return;
     window.sessionStorage.removeItem("items-filter-state");
     window.sessionStorage.removeItem("items-return-from-detail");
+    window.sessionStorage.removeItem("items-scroll-state");
   }, [pathname]);
 
   return null;

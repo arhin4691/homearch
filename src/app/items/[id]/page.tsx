@@ -23,6 +23,7 @@ import {
   User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { CategoryBadge, ExpiryBadge } from "@/components/ui/Badge";
@@ -61,6 +62,7 @@ export default function ItemDetailPage() {
   const searchParams = useSearchParams();
   const id = params.id as string;
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,12 +96,16 @@ export default function ItemDetailPage() {
   }, [fetchItem]);
 
   const toggleFavorite = async () => {
-    const res = await fetch(`/api/items/${id}/favorite`, { method: "POST" });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/items/${id}/favorite`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to update favorite");
       const json = await res.json();
       setItem((prev) =>
         prev ? { ...prev, isFavorite: json.data.isFavorite } : prev,
       );
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
+    } catch {
+      showToast(t("updateFailed"), "error");
     }
   };
 
@@ -112,12 +118,14 @@ export default function ItemDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ delta }),
       });
-      if (res.ok) {
-        const json = await res.json();
-        setItem((prev) =>
-          prev ? { ...prev, quantity: json.data.quantity } : prev,
-        );
-      }
+      if (!res.ok) throw new Error("Failed to update quantity");
+      const json = await res.json();
+      setItem((prev) =>
+        prev ? { ...prev, quantity: json.data.quantity } : prev,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
+    } catch {
+      showToast(t("updateFailed"), "error");
     } finally {
       setAdjusting(false);
     }
@@ -126,7 +134,9 @@ export default function ItemDetailPage() {
   const deleteItem = async () => {
     setDeleting(true);
     try {
-      await fetch(`/api/items/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete item");
+      await queryClient.invalidateQueries({ queryKey: ["items"] });
       showToast(t("itemDeleted"), "success");
       router.replace("/items");
     } catch {
@@ -339,7 +349,10 @@ export default function ItemDetailPage() {
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
         itemId={id}
-        onSuccess={() => fetchItem()}
+        onSuccess={() => {
+          void queryClient.invalidateQueries({ queryKey: ["items"] });
+          void fetchItem();
+        }}
       />
     </AppShell>
   );

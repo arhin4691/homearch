@@ -114,6 +114,8 @@
     "empty": "アイテムはまだありません",
     "searchPlaceholder": "アイテムを検索...",
     "loadError": "アイテムの読み込みに失敗しました",
+    "locationLoadError": "保管場所の読み込みに失敗しました",
+    "updateFailed": "アイテムの更新に失敗しました",
     "categories": {
       "Food": "食品",
       "Drinks": "飲料",
